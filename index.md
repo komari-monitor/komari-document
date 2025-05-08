@@ -12,7 +12,7 @@ hero:
       link: /install/docker
     - theme: alt
       text: 常见问题
-      link: /api-examples
+      link: /faq/chpasswd
 
 features:
   - title: 轻量高效
