@@ -93,7 +93,6 @@ Global Flags:
 > docker exec komari /app/komari chpasswd -p MySecurePass123 -d /app/data/komari.db
 > ```
 
-
 ## 5. 验证
 
 - 成功执行后，终端会提示 “Password changed successfully”。
@@ -102,22 +101,18 @@ Global Flags:
   - Docker 部署：使用 `docker restart komari` 重启容器。
 - 用浏览器访问 Komari（例如 `http://localhost:25774` 或服务器 IP），以默认用户名 `admin` 和新密码登录验证效果。
 
----
-
 ## 小贴士
 
 - **安全性**：建议设置复杂密码，包含字母、数字和符号。
 - **备份数据**：重置密码会修改 `data/komari.db`，改动前请适当备份 `data` 文件夹。
 - **故障排查**：如遇问题，请检查当前目录、命令格式或 Docker 容器名称，必要时查看日志（Docker 下使用 `docker logs komari`）。
 
----
-
 这样，无论你使用哪种平台，都能快速重置 Komari 的密码。
 
 ## 遇到其他问题？
 
 - **日志怎么看？**
-  - 二进制部署：启动 Komari 时看终端输出，或检查 `data` 文件夹里的日志文件（如果有）。
+  - 二进制部署：启动 Komari 时看终端输出。
   - Docker：用 `docker logs komari` 查看。
 - **还是搞不定？**
   - 把终端的错误信息复制下来，贴到在[这里](https://github.com/komari-monitor/komari/issues/new?template=general_issue.md)提问。
