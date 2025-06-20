@@ -25,6 +25,7 @@ export default defineConfig({
         text: '常见问题',
         items: [
           { text: '重置密码', link: '/faq/chpasswd' },
+          { text: '强制取消2FA', link: '/faq/disable2fa' },
         ]
       }
     ],

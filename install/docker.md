@@ -17,6 +17,8 @@ docker run -d \
 
 > 你也可以通过环境变量 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 自定义初始用户名和密码。
 
+> 实验性：可以指定数据库参数，不指定默认使用sqlite3，详见--help参数
+
 
 ## 步骤 0：安装 Docker
 
