@@ -52,7 +52,7 @@ Komari Agent 是一个轻量级的系统监控代理程序，通过 WebSocket �
   "mem_total": 137438953472,
   "os": "Windows 11 Home",
   "swap_total": 51539607552,
-  "version": "0.0.1",
+  "version": "0.0.1-rust", //版本信息无校验，可随意填入
   "virtualization": "None"
 }
 ```
