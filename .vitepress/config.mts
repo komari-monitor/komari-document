@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -8,30 +8,37 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: '主页', link: '/' },
-      { text: '快速开始', link: '/install/docker' }
+      { text: "主页", link: "/" },
+      { text: "快速开始", link: "/install/docker" },
+      { text: "开发指南", link: "/dev/agent" },
     ],
 
     sidebar: [
       {
-        text: '安装',
+        text: "安装",
         items: [
-          { text: 'Docker 部署', link: '/install/docker' },
-          { text: '二进制安装', link: '/install/binary' },
-          { text: '手动编译', link: '/install/compile' }
-        ]
+          { text: "Docker 部署", link: "/install/docker" },
+          { text: "二进制安装", link: "/install/binary" },
+          { text: "手动编译", link: "/install/compile" },
+        ],
       },
       {
-        text: '常见问题',
+        text: "开发指南",
         items: [
-          { text: '重置密码', link: '/faq/chpasswd' },
-          { text: '强制取消2FA', link: '/faq/disable2fa' },
-        ]
-      }
+          { text: "Agent 开发", link: "/dev/agent" },
+        ],
+      },
+      {
+        text: "常见问题",
+        items: [
+          { text: "重置密码", link: "/faq/chpasswd" },
+          { text: "强制取消2FA", link: "/faq/disable2fa" },
+        ],
+      },
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/komari-monitor/komari' }
-    ]
-  }
-})
+      { icon: "github", link: "https://github.com/komari-monitor/komari" },
+    ],
+  },
+});
