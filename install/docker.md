@@ -13,6 +13,7 @@ docker run -d \
   -v $(pwd)/data:/app/data \
   --name komari \
   ghcr.io/komari-monitor/komari:latest
+docker logs komari
 ```
 
 > 你也可以通过环境变量 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 自定义初始用户名和密码。
