@@ -33,7 +33,8 @@ export default defineConfig({
         items: [
           { text: "重置密码", link: "/faq/chpasswd" },
           { text: "强制取消2FA", link: "/faq/disable2fa" },
-          { text: "集成cloudflared", link: "/faq/cloudflared" },
+          { text: "集成Cloudflared", link: "/faq/cloudflared" },
+          { text: "卸载Agent", link: "/faq/uninstall" },
         ],
       },
     ],
