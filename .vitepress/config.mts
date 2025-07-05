@@ -9,7 +9,7 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: "主页", link: "/" },
-      { text: "快速开始", link: "/install/docker" },
+      { text: "快速开始", link: "/install/quick-start" },
       { text: "开发指南", link: "/dev/agent" },
     ],
 
@@ -17,6 +17,7 @@ export default defineConfig({
       {
         text: "安装",
         items: [
+          { text: "快速安装", link: "/install/quick-start" },
           { text: "Docker 部署", link: "/install/docker" },
           { text: "二进制安装", link: "/install/binary" },
           { text: "手动编译", link: "/install/compile" },
