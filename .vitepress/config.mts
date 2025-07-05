@@ -20,6 +20,7 @@ export default defineConfig({
           { text: "Docker 部署", link: "/install/docker" },
           { text: "二进制安装", link: "/install/binary" },
           { text: "手动编译", link: "/install/compile" },
+          { text: "更新", link: "/install/update" },
         ],
       },
       {
