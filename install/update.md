@@ -16,7 +16,7 @@ docker pull ghcr.io/komari-monitor/komari:latest
 
 ### 步骤 2：停止并移除当前运行的容器
 
-**重要！** 请先在设置-账户中备份您的数据。
+<span style="color: red; font-weight: bold;">请先在设置-账户中备份您的数据。</span>
 
 您需要先停止并移除旧的 Komari 容器，才能使用新镜像启动新容器。
 
