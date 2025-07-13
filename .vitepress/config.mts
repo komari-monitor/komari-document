@@ -37,6 +37,7 @@ export default defineConfig({
           { text: "强制取消2FA", link: "/faq/disable2fa" },
           { text: "集成Cloudflared", link: "/faq/cloudflared" },
           { text: "卸载Agent", link: "/faq/uninstall" },
+          { text: "无root运行Agent", link: "/faq/agent-no-root" },
         ],
       },
     ],
