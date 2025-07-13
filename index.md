@@ -9,7 +9,7 @@ hero:
   actions:
     - theme: brand
       text: 立刻开始
-      link: /install/docker
+      link: /install/quick-start
     - theme: alt
       text: 常见问题
       link: /faq/chpasswd
