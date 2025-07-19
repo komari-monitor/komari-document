@@ -40,6 +40,7 @@ export default defineConfig({
           { text: "集成Cloudflared", link: "/faq/cloudflared" },
           { text: "卸载Agent", link: "/faq/uninstall" },
           { text: "无root运行Agent", link: "/faq/agent-no-root" },
+          { text: "Nginx反向代理", link: "/faq/nginx" },
         ],
       },
     ],
