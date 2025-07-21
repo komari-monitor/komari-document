@@ -5,6 +5,16 @@ export default defineConfig({
   base: "/komari-document",
   title: "Komari",
   description: "Komari Monitor Document",
+  head: [
+    [
+      'script',
+      {
+        async: '',
+        src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2394611077475390',
+        crossorigin: 'anonymous'
+      }
+    ]
+  ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
