@@ -1,1 +1,1 @@
-[在线文档](https://komari-monitor.github.io/komari-document/)
+[在线文档](https://komari-document.pages.dev/)
