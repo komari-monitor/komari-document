@@ -388,15 +388,7 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
         "count": 240,
         "records": [
             {
-                "client": "4addbaf1-7ffb-474c-98ee-4ffd476755ff",
                 "task_id": 1,
-                "task": {
-                    "name": "百度",
-                    "clients": null,
-                    "type": "ping",
-                    "target": "baidu.com",
-                    "interval": 30
-                },
                 "time": "2025-07-15T07:30:00.000Z",
                 "value": 25.5
             }
@@ -424,14 +416,7 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
 
 | 字段 | 类型 | 描述 |
 |------|------|------|
-| `client` | string | 节点UUID |
 | `task_id` | number | 任务ID |
-| `task` | object | 任务详细信息 |
-| `task.name` | string | 任务名称 |
-| `task.clients` | null | 客户端信息（通常为null） |
-| `task.type` | string | 任务类型（如 "ping"） |
-| `task.target` | string | Ping 目标地址 |
-| `task.interval` | number | 执行间隔（秒） |
 | `time` | string | 记录时间 |
 | `value` | number | Ping 延迟值（毫秒） |
 
