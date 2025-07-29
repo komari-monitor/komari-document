@@ -53,6 +53,14 @@ export default defineConfig({
           { text: "Nginx反向代理", link: "/faq/nginx" },
         ],
       },
+      {
+        text: "社区项目",
+        items: [
+          { text: "Agent", link: "/community/agent" },
+          { text: "主题", link: "/community/theme" },
+          { text: "其他", link: "/community/other" },
+        ],
+      },
     ],
 
     socialLinks: [
