@@ -44,5 +44,12 @@
 - **🖥️ 桌面端UI优化**: 改进的桌面界面，更好的布局和可用性
 - **🎨 现代化设计**: 基于原版Komari Web的简洁
 
+## ServerStatus-Hotaru
+
+> 下载地址: [Github](https://github.com/komari-monitor/komari-web/releases/download/1.0.3/komari-theme-hotaru.zip)
+
+此主题不会维护。
+
 ### 截图
 
+![ServerStatus-Hotaru Screenshot](https://i.111666.best/image/2zoLYT6UdYe3uj7gXboAQo.png)
