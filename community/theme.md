@@ -37,6 +37,10 @@
 
 基于 [Komari Web](https://github.com/komari-monitor/komari-web) 的另一个主题 Mochi。
 
+### 截图
+
+![image](https://i.111666.best/image/Os7F4bwuyR7F6I78zDCvPI.jpeg)
+
 ### 🌟 核心特性
 
 - **📱 优化的移动端UI**: 改良的响应式设计，提供更佳的移动端体验
