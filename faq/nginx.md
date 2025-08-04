@@ -18,6 +18,8 @@ location ^~ / {
     proxy_http_version 1.1;
     proxy_ssl_server_name off;
     proxy_ssl_name $proxy_host;
+    # 50M文件上传
+    client_max_body_size 50M;
 }
 ```
 
