@@ -159,6 +159,7 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
             "arch": "amd64",
             "cpu_cores": 1,
             "os": "Debian GNU/Linux 12 (bookworm)",
+            "kernel_version": "6.8.12-10-pve",
             "gpu_name": "Red Hat, Inc. Virtio 1.0 GPU (rev 01)",
             "region": "🇸🇬",
             "mem_total": 479670272,
@@ -189,6 +190,7 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
 | `arch` | string | 系统架构（如 amd64） |
 | `cpu_cores` | number | CPU 核心数 |
 | `os` | string | 操作系统信息 |
+| `kernel_version` | string | 内核版本 |
 | `gpu_name` | string | GPU 名称，无 GPU 时为 "None" |
 | `region` | string | 地区（通常使用国旗表情符号） |
 | `mem_total` | number | 总内存大小（字节） |
