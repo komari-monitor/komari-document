@@ -12,6 +12,7 @@ docker run -d \
   -p 25774:25774 \
   -v $(pwd)/data:/app/data \
   --name komari \
+  --restart unless-stopped \
   ghcr.io/komari-monitor/komari:latest
 docker logs komari
 ```
