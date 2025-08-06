@@ -2,6 +2,18 @@
 
 Komari 提供了一套 API 接口，供开发者进行二次开发和集成。以下是主要的 API 接口文档。
 
+## 认证
+
+如果你需要操作后台（以 `/api/admin` 开头的地址），需要进行认证。
+
+### Cookie
+
+验证 `session_token` 字段
+
+### API Key
+
+方式： Bearer Authentication
+
 ## 用户信息接口
 
 ### GET `/api/me`
