@@ -14,6 +14,10 @@ Komari 提供了一套 API 接口，供开发者进行二次开发和集成。�
 
 方式： Bearer Authentication
 
+:::warning 注意
+仅1.0.3之后(不含)的版本可以使用API Key认证
+:::
+
 ## 用户信息接口
 
 ### GET `/api/me`
