@@ -202,7 +202,7 @@ Agent 通过 WebSocket 连接接收服务器下发的事件，通过message字�
   "type": "ping_result",
   "task_id": 123,
   "ping_type": "icmp",
-  "value": "延迟毫秒数 (-1表示失败)", // 推荐测试失败时直接不上报
+  "value": 13, //延迟毫秒数 (-1表示失败,将会被视为丢包)
   "finished_at": "完成时间"
 }
 ```
