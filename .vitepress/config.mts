@@ -32,6 +32,7 @@ export default defineConfig({
           { text: "二进制安装", link: "/install/binary" },
           { text: "手动编译", link: "/install/compile" },
           { text: "更新", link: "/install/update" },
+          { text: "Agent自动发现", link: "/install/agent-ad" },
         ],
       },
       {
