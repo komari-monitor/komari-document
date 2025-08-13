@@ -64,20 +64,37 @@ Komari 提供了一套 API 接口，供开发者进行二次开发和集成。�
     "data": {
         "allow_cors": true,
         "custom_body": "",
-        "custom_head": "",
-        "description": "A simple server monitor tool.",
+        "custom_head": "\n    \u003Cstyle\u003E\n      body { /* 自定义样式省略 */ }\n    \u003C/style\u003E",
+        "description": "Komari is a simple server monitor tool.",
         "disable_password_login": false,
-        "oauth_enable": false,
-        "ping_record_preserve_time": 24,
+        "oauth_enable": true,
+        "oauth_provider": "github",
+        "ping_record_preserve_time": 48,
+        "private_site": false,
         "record_enabled": true,
         "record_preserve_time": 720,
-        "sitename": "Komari Monitor"
+        "sitename": "Komari",
+        "theme": "Mochi",
+        "theme_settings": {
+            "number_A": 99,
+            "select_A": "选项3",
+            "string_A": "测试文本",
+            "switch_A": true
+        }
     }
 }
 ```
 
 :::warning 注意
 如果你遵守了主题 [index.html的要求](./theme.md#主页面模板)，服务端会自动处理 `sitename` 、 `description` 、 `custom_head` 和 `custom_body` 的内容。无需在主题中手动处理这些内容。
+:::
+
+::: tip 动态主题配置
+`theme_settings` 与主题包中 `komari-theme.json` 的 `configuration.data` 相对应（仅服务器版本 >= 1.0.5 支持）。它是公开可读的（任何访问者都能通过此接口获取），加载初期可能为 `null`（尚未保存任何自定义值时）。请在前端代码中做好 `null` 判定：
+```js
+const themeSettings = data.theme_settings || {}; // 为空则使用默认值
+```
+当配置项被管理员修改后，将以 `key: value` 形式展现在此对象中；未出现的 `key` 代表采用默认值或尚未写入。
 :::
 
 **字段说明:**
@@ -90,10 +107,14 @@ Komari 提供了一套 API 接口，供开发者进行二次开发和集成。�
 | `description` | string | 站点描述 |
 | `disable_password_login` | boolean | 是否禁用密码登录 |
 | `oauth_enable` | boolean | 是否启用 OAuth 登录 |
+| `oauth_provider` | string \| null | OAuth 提供商（启用 OAuth 时返回，如 `github`） |
 | `ping_record_preserve_time` | number | 最大 ping 记录保留时间（小时） |
+| `private_site` | boolean | 是否为私有站点（私有时未登录访问可能受限） |
 | `record_enabled` | boolean | 是否启用历史记录功能 |
 | `record_preserve_time` | number | 最大负载记录保留时间（小时） |
 | `sitename` | string | 站点名称 |
+| `theme` | string | 当前启用的主题 `short` 名称 |
+| `theme_settings` | object \| null | 主题动态配置的已保存值映射；可能为 `null` 或部分键缺失 |
 
 这些属性可用于主题的自定义展示，例如动态设置页面标题、描述、样式等。
 

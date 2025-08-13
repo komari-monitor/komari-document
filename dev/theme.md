@@ -47,6 +47,92 @@ theme.zip
 | `url` | string | 否 | 主题的项目地址或作者网站 |
 | `preview` | string | 否 | 预览图片的相对路径（相对于主题根目录） |
 
+## 动态配置（自 1.0.5 起支持）
+
+自 `Komari` 服务器版本 1.0.5 起，主题可在 `komari-theme.json` 中声明一个可管理的 `configuration`，用于让管理员在面板中直接调节主题参数，而无需重新打包主题。
+
+### 扩展示例
+
+```json
+{
+    "name": "Komari Web Mochi",
+    "short": "Mochi",
+    "description": "Another Komari Web Theme with enhanced mobile UI and beautiful design",
+    "version": "1.0.3",
+    "author": "Mochi DEV Team",
+    "url": "https://github.com/svnmoe/komari-web-mochi",
+    "preview": "preview.png",
+    "configuration": {
+        "type": "managed",
+        "icon": "/themes/Mochi/dist/assets/os-debian.svg",
+        "name": "微调Mochi",
+        "data": [
+            { "name": "测试标题", "type": "title" },
+            { "key": "switch_A", "name": "测试开关", "type": "switch", "default": true, "help": "这是一个测试开关" },
+            { "key": "select_A", "name": "测试选择", "type": "select", "options": "选项1,选项2,选项3", "default": "选项1", "help": "这是一个测试选择" },
+            { "key": "number_A", "name": "测试输入框(数字)", "type": "number", "default": 10, "help": "这是一个测试输入框" },
+            { "key": "string_A", "name": "测试输入框2", "type": "string", "required": true, "help": "这是一个测试输入框" }
+        ]
+    }
+}
+```
+
+### 字段说明（configuration 根对象）
+
+| 字段 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `type` | string | 是 | 目前固定为 `managed` |
+| `icon` | string | 否 | 设置面板的图标 URL。支持绝对/相对路径。`/themes/{short}/` 指向主题根目录，可用：`/themes/Mochi/dist/...` `https://img.com/img.png` |
+| `name` | string | 否 | 在管理面板展示的配置标题；未填写可由系统回退到主题名 |
+| `data` | array | 是 | 配置项数组（见下表） |
+
+### 配置项（data 数组元素）
+
+| 字段 | 适用类型 | 必需 | 描述 |
+|------|----------|------|------|
+| `type` | 全部 | 是 | `string` / `number` / `select` / `switch` / `title` |
+| `name` | 全部 | 是 | 显示名称；`title` 类型用于分组标题，不需要 `key` |
+| `key` | 除 `title` | 是 | 唯一键 |
+| `required` | `string` | 否 | 是否必填（默认 `false`） |
+| `options` | `select` | 是 | 逗号分隔的选项：`"A,B,C"` |
+| `default` | 除 `title` | 否 | 默认值 |
+| `help` | 除 `title` | 否 | 帮助提示文本 |
+
+#### 类型含义
+
+- `title`: 纯分隔/标题行，无交互，不应包含 `key`、`default`。
+- `string`: 文本输入。
+- `number`: 数字输入，前端需自行校验范围。
+- `select`: 下拉选择，`options` 为必填。
+- `switch`: 布尔开关，值为 `true/false`。
+
+### 空值与兼容性处理
+
+请在前端/主题脚本中优雅处理以下情况：
+
+1. `configuration` 字段不存在（< 1.0.5 的旧主题）。
+2. `configuration` 存在但 `data` 为 `null` 或空数组。
+3. 某个配置项的 `default` 为 `null`（应采用组件级 fallback）。
+
+### 图标与资源路径
+
+当使用以 `/themes/{short}/` 开头的绝对路径时，服务器会将其映射到该主题的根目录。例如：
+
+```
+/themes/Mochi/dist/assets/os-debian.svg  ->  {主题包解压根}/dist/assets/os-debian.svg
+```
+
+因此在 `icon`、或自定义资源引用里可以安全使用该前缀，避免硬编码完整 URL。
+
+### 版本提醒
+
+只有 **服务器版本 1.0.5 及以上** 会解析并展示 `configuration`。
+
+---
+
+> 提醒：若未声明 `configuration`，主题仍完全可用；此特性只是为增强可定制性。
+
+
 ## 主页面模板
 
 ### index.html 要求
