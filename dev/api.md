@@ -90,10 +90,7 @@ Komari 提供了一套 API 接口，供开发者进行二次开发和集成。�
 :::
 
 ::: tip 动态主题配置
-`theme_settings` 与主题包中 `komari-theme.json` 的 `configuration.data` 相对应（仅服务器版本 >= 1.0.5 支持）。它是公开可读的（任何访问者都能通过此接口获取），加载初期可能为 `null`（尚未保存任何自定义值时）。请在前端代码中做好 `null` 判定：
-```js
-const themeSettings = data.theme_settings || {}; // 为空则使用默认值
-```
+`theme_settings` 与主题包中 `komari-theme.json` 的 `configuration.data` 相对应（仅服务器版本 >= 1.0.5 支持）。它是公开可读的（任何访问者都能通过此接口获取。
 当配置项被管理员修改后，将以 `key: value` 形式展现在此对象中；未出现的 `key` 代表采用默认值或尚未写入。
 :::
 

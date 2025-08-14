@@ -31,7 +31,8 @@ theme.zip
     "version": "1.0.0",
     "author": "Akizon77",
     "url": "https://github.com/komari-monitor/komari",
-    "preview": "preview.png"
+    "preview": "preview.png",
+    "configuration": {} // >= 1.0.5 支持
 }
 ```
 
@@ -46,10 +47,13 @@ theme.zip
 | `author` | string | 是 | 主题作者 |
 | `url` | string | 否 | 主题的项目地址或作者网站 |
 | `preview` | string | 否 | 预览图片的相对路径（相对于主题根目录） |
+| `configuration` | object | 否 | 主题的动态配置（自 1.0.5 起支持） |
 
 ## 动态配置（自 1.0.5 起支持）
 
 自 `Komari` 服务器版本 1.0.5 起，主题可在 `komari-theme.json` 中声明一个可管理的 `configuration`，用于让管理员在面板中直接调节主题参数，而无需重新打包主题。
+
+数据将在 [/api/public](./api#服务端公开属性) 中以 `key: value` 的形式公开可见。
 
 ### 扩展示例
 
@@ -108,11 +112,10 @@ theme.zip
 
 ### 空值与兼容性处理
 
-请在前端/主题脚本中优雅处理以下情况：
+请在前端处理以下情况：
 
 1. `configuration` 字段不存在（< 1.0.5 的旧主题）。
-2. `configuration` 存在但 `data` 为 `null` 或空数组。
-3. 某个配置项的 `default` 为 `null`（应采用组件级 fallback）。
+2. `configuration` 存在但 `data` 为 `null` 或空对象。
 
 ### 图标与资源路径
 
