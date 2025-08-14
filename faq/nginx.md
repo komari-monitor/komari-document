@@ -1,62 +1,46 @@
-# 使用 Nginx 代理 WebSocket 服务
-
-在实际部署 WebSocket 服务时，常常需要使用 Nginx 作为反向代理。这样可以提升安全性、灵活性，并方便统一管理流量。下面将介绍如何配置 Nginx 以支持 WebSocket 代理。
+# 使用 Nginx 反向代理
 
 ## 1. 基本配置示例
 
-假设你的 Komari 服务运行在本地 `127.0.0.1:25774`，可以在 Nginx 配置文件中添加如下内容：
-
-```nginx
-location ^~ / {
-    proxy_pass http://127.0.0.1:25774;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header REMOTE-HOST $remote_addr;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $http_connection;
-    proxy_http_version 1.1;
-    proxy_ssl_server_name off;
-    proxy_ssl_name $proxy_host;
-    # 50M文件上传
-    client_max_body_size 50M;
-}
-```
-
-## 2. 重点参数说明
-
-- `proxy_set_header Upgrade $http_upgrade;` 和 `proxy_set_header Connection $http_connection;` 是 WebSocket 代理的关键，确保协议升级。
-- `proxy_http_version 1.1;` 必须设置为 1.1，WebSocket 仅支持 HTTP/1.1。
-- 其他 `proxy_set_header` 用于保留客户端真实 IP 和主机信息。
-
-## 3. 常见问题
-
-- **连接失败/断开**：请确认后端服务监听地址与端口正确，且 Nginx 配置已 reload。
-- **跨域问题**：如需支持跨域，可在后端或 Nginx 增加 `add_header Access-Control-Allow-Origin *;`。
-
-## 4. 完整配置示例
+假设你的 Komari 服务运行在本地 `127.0.0.1:25774`，可以在 Nginx 配置文件中使用如下内容：
 
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
 
-    location ^~ / {
+    location / {
         proxy_pass http://127.0.0.1:25774;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header REMOTE-HOST $remote_addr;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $http_connection;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
         proxy_http_version 1.1;
-        proxy_ssl_server_name off;
-        proxy_ssl_name $proxy_host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+
+        # 禁用代理缓冲
+        proxy_buffering off;
+
+        # 允许大文件上传（50M）
+        client_max_body_size 50M;
     }
 }
 ```
 
-## 5. 应用配置
+## 2. 重点参数说明
+
+- `proxy_set_header Upgrade $http_upgrade;` 和 `proxy_set_header Connection "Upgrade";` 确保启用 WebSocket
+- `proxy_http_version 1.1;` 必须设置为 1.1，WebSocket 仅支持 HTTP/1.1。
+- 其他 `proxy_set_header` 用于保留客户端真实 IP 和主机信息。
+
+## 3. 常见问题
+
+- **连接失败/断开**：请确认后端服务监听地址与端口正确，且 Nginx 配置已 reload。
+- **实在无法处理 ws 反向代理**：若确认问题来自于反向代理导致的 Origin 校验失败，且短期内无法修复代理配置，可在后端以环境变量方式显式禁用 WebSocket 的 Origin 校验：`KOMARI_WS_DISABLE_ORIGIN=true`。此方式仅建议用于排障或临时过渡，存在安全风险（可能导致跨站来源的非预期连接），不建议在生产环境长期启用。
+
+## 4. 应用配置
 
 修改完配置后，记得重载 Nginx：
 
