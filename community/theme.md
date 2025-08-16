@@ -48,6 +48,20 @@
 
 ![image](https://i.111666.best/image/Os7F4bwuyR7F6I78zDCvPI.jpeg)
 
+## PurCarte
+
+> 项目地址: [Github](https://github.com/Montia37/komari-theme-purcarte)
+>
+> 开发者: [Montia37](https://github.com/Montia37)
+
+### ✨ PurCarte ✨
+
+一款为 [Komari](https://github.com/komari-monitor/komari) 设计的磨砂玻璃风格主题。
+
+### 截图
+
+![image](https://i.111666.best/image/fjLgp8zlWY3DOW26WRDOJ3.jpeg)
+
 ## ServerStatus-Hotaru
 
 > 下载地址: [Github](https://github.com/komari-monitor/komari-web/releases/download/1.0.3/komari-theme-hotaru.zip)
