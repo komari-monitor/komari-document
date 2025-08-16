@@ -202,6 +202,7 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
             "weight": 0,
             "price": -1,
             "billing_cycle": 30,
+            "auto_renewal": true,
             "currency": "$",
             "expired_at": "2026-04-13 00:00:00.0000000+00:00",
             "group": "新加坡",
