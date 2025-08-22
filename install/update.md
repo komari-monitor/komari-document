@@ -47,6 +47,7 @@ docker run -d \
 -   请确保 `-v` 参数中的 `$(pwd)/data` 部分正确指向您之前创建的 `data` 文件夹的绝对路径。
 -   如果您在初次安装时设置了自定义的环境变量（例如 `ADMIN_USERNAME`, `ADMIN_PASSWORD`），则无需在更新时再次指定，因为初始管理员账号已经创建。
 -   如果您使用了 `docker-compose`，请在 `docker-compose.yml` 所在的目录执行 `docker-compose pull` 和 `docker-compose up -d` 来完成更新。
+-   如果你是'docker run'部署但是忘记了自己原始的启动命令也忘记了保存路径可以使用[Runlike](https://github.com/lavie/runlike) 来重新获取原始启动参数
 
 ### 步骤 4：验证更新
 
