@@ -57,6 +57,11 @@
     sudo rm /etc/systemd/system/komari-agent.service
     sudo systemctl daemon-reload
     ```
+3.  **确认无任何自定义修改可以使用一行命令一键删除**
+    ```bash
+    sudo systemctl stop komari-agent && sudo systemctl disable komari-agent && sudo rm -f /etc/systemd/system/komari-agent.service && sudo systemctl daemon-reload && sudo rm -rf /opt/komari /var/log/komari
+    ```
+    
 
 ### OpenRC
 
@@ -74,6 +79,11 @@
 
     ```bash
     sudo rm /etc/init.d/komari-agent
+    ```
+3. **确认无任何自定义修改可以使用一行命令一键删除**
+
+   ```bash
+   sudo rc-service komari-agent stop && sudo rc-update del komari-agent default && sudo rm -f /etc/init.d/komari-agent && sudo rm -rf /opt/komari
     ```
 
 ### procd (OpenWrt)
@@ -93,11 +103,14 @@
     ```bash
     sudo rm /etc/init.d/komari-agent
     ```
-
+3.  **确认无任何自定义修改可以使用一行命令一键删除**
+    ```bash
+    /etc/init.d/komari-agent stop && /etc/init.d/komari-agent disable && sudo rm -f /etc/init.d/komari-agent && sudo rm -rf /opt/komari
+    ```
 ### 删除安装文件 (所有 Linux 发行版)
+**若已使用一行命令一键删除，则无须执行接下来的步骤**
 
 在完成上述特定于 `init` 系统的步骤后，删除 Agent 的安装文件。
-
 默认安装目录为 `/opt/komari`。如果安装时通过 `--install-dir` 参数指定了其他目录，请修改下面的路径。
 
 ```bash
