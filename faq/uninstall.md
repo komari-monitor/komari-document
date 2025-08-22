@@ -57,6 +57,12 @@
     sudo rm /etc/systemd/system/komari-agent.service
     sudo systemctl daemon-reload
     ```
+3.  **如果你确实知道自己在做什么可以使用一行命令一键删除
+**
+    ```bash
+    sudo systemctl stop komari-agent && sudo systemctl disable komari-agent && sudo rm -f /etc/systemd/system/komari-agent.service && sudo systemctl daemon-reload && sudo rm -rf /opt/komari /var/log/komari
+    ```
+    
 
 ### OpenRC
 
