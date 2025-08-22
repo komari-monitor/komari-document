@@ -80,9 +80,10 @@
     ```bash
     sudo rm /etc/init.d/komari-agent
     ```
-3。 **确认无任何自定义修改可以使用一行命令一键删除**
-    ```bash
-    sudo rc-service komari-agent stop && sudo rc-update del komari-agent default && sudo rm -f /etc/init.d/komari-agent && sudo rm -rf /opt/komari
+3. **确认无任何自定义修改可以使用一行命令一键删除**
+
+   ```bash
+   sudo rc-service komari-agent stop && sudo rc-update del komari-agent default && sudo rm -f /etc/init.d/komari-agent && sudo rm -rf /opt/komari
     ```
 
 ### procd (OpenWrt)
