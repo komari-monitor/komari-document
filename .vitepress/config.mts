@@ -53,6 +53,7 @@ export default defineConfig({
           { text: "无 root 运行 Agent", link: "/faq/agent-no-root" },
           { text: "Nginx 反向代理", link: "/faq/nginx" },
           { text: "使用 GitHub 进行单点登录", link: "/faq/oauth-github" },
+          { text: "利用Gmail发送通知", link: "community/smtp_gmail.md" },
         ],
       },
       {
