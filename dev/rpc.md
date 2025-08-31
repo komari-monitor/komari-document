@@ -141,7 +141,7 @@ Komari 参数传递支持指名和数组两种方式。
 | version            | string    | Agent 版本（未认证不显示）                               |
 | weight             | int       | 节点排序权重                        |
 | price              | float64   | 价格（计费相关）                                         |
-| billing_cycle      | int       | 计费周期（单位：天，具体以业务为准）                     |
+| billing_cycle      | int       | 计费周期（单位：天）                     |
 | auto_renewal       | bool      | 是否自动续费                                             |
 | currency           | string    | 货币符号（默认 `$`）                                     |
 | expired_at         | LocalTime | 到期时间                                                 |
