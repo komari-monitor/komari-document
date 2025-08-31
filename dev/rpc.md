@@ -139,7 +139,7 @@ Komari 参数传递支持指名和数组两种方式。
 | swap_total         | int64     | 交换分区总量（字节）                                     |
 | disk_total         | int64     | 磁盘总量（字节）                                         |
 | version            | string    | Agent 版本（未认证不显示）                               |
-| weight             | int       | 节点权重（调度 / 负载均衡用途）                          |
+| weight             | int       | 节点排序权重                        |
 | price              | float64   | 价格（计费相关）                                         |
 | billing_cycle      | int       | 计费周期（单位：天，具体以业务为准）                     |
 | auto_renewal       | bool      | 是否自动续费                                             |
