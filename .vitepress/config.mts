@@ -41,6 +41,7 @@ export default defineConfig({
           { text: "主题开发", link: "/dev/theme" },
           { text: "API 接口", link: "/dev/api" },
           { text: "Agent 开发", link: "/dev/agent" },
+          { text: "RPC 接口", link: "/dev/rpc" },
         ],
       },
       {
