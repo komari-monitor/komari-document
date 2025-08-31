@@ -1,6 +1,6 @@
 # RPC2 接口
 
-Komari 提供了一个 JSON-RPC2 over WebSocket 接口。
+Komari 提供了一个 JSON-RPC2 接口。你可以通过 Websocket 或 POST 调用。
 
 :::warning 注意
 仅 >=1.0.7 的版本可以使用 RPC2
@@ -112,9 +112,9 @@ Komari 参数传递支持指名和数组两种方式。
 
 返回：
 
-| 返回值类型 | 描述                |
-| ---------- | ------------------- | ------------------------------------------ |
-| `Client    | { [uuid]: Client }` | 单个节点对象或以 uuid 作为键的节点对象集合 |
+| 返回值类型                        | 描述                                       |
+| --------------------------------- | ------------------------------------------ |
+| `Client    \| { [uuid]: Client }` | 单个节点对象或以 uuid 作为键的节点对象集合 |
 
 ### Client
 
@@ -171,22 +171,22 @@ Komari 参数传递支持指名和数组两种方式。
 
 ### PublicInfo
 
-| 字段                      | 类型   | 说明                                                                      |
-| ------------------------- | ------ | ------------------------------------------------------------------------- |
-| allow_cors                | bool   | 是否允许 CORS（跨域）。                                                   |
-| custom_body               | string | 注入到页面 `<body>` 尾部的自定义 HTML 片段。                              |
-| custom_head               | string | 注入到页面 `<head>` 内的自定义 HTML（如样式 / 脚本）。已做 XSS 安全过滤。 |
-| description               | string | 站点描述。                                                                |
-| disable_password_login    | bool   | 是否禁用密码登录（仅允许 OAuth 等其他方式）。                             |
-| oauth_enable              | bool   | 是否启用 OAuth 登录。                                                     |
-| oauth_provider            | string | 启用的 OAuth 提供商标识（如：`github`）。                                 |
-| ping_record_preserve_time | int    | ping 记录保留时长（小时）。                                               |
-| private_site              | bool   | 是否为私有站点（私有时未登录隐藏更多信息）。                              |
-| record_enabled            | bool   | 是否启用监控记录（指标时间序列采集）。                                    |
-| record_preserve_time      | int    | 监控记录保留时长（小时）。                                                |
-| sitename                  | string | 站点名称。                                                                |
-| theme                     | string | 当前主题名称。                                                            |
-| theme_settings            | object | 主题自定义配置（键值结构由具体主题定义，可能为空对象）。                  |
+| 字段                      | 类型   | 说明                                                     |
+| ------------------------- | ------ | -------------------------------------------------------- |
+| allow_cors                | bool   | 是否允许 CORS（跨域）。                                  |
+| custom_body               | string | 注入到页面 `<body>` 尾部的自定义 HTML 片段。             |
+| custom_head               | string | 注入到页面 `<head>` 内的自定义 HTML（如样式 / 脚本）。   |
+| description               | string | 站点描述。                                               |
+| disable_password_login    | bool   | 是否禁用密码登录。                                       |
+| oauth_enable              | bool   | 是否启用 OAuth 登录。                                    |
+| oauth_provider            | string | 启用的 OAuth 提供商标识（如：`github`）。                |
+| ping_record_preserve_time | int    | ping 记录保留时长（小时）。                              |
+| private_site              | bool   | 是否为私有站点。                                         |
+| record_enabled            | bool   | 是否启用监控记录。                                       |
+| record_preserve_time      | int    | 监控记录保留时长（小时）。                               |
+| sitename                  | string | 站点名称。                                               |
+| theme                     | string | 当前主题 Short 名称。                                    |
+| theme_settings            | object | 主题自定义配置（键值结构由具体主题定义，可能为空对象）。 |
 
 ::: tip 提示
 `theme_settings` 结构会因主题而异；前端应做存在性与键名的容错处理。
