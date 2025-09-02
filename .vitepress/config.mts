@@ -52,7 +52,7 @@ export default defineConfig({
           { text: "集成 Cloudflared", link: "/faq/cloudflared" },
           { text: "卸载 Agent", link: "/faq/uninstall" },
           { text: "无 root 运行 Agent", link: "/faq/agent-no-root" },
-          { text: "Nas 运行 Agent", link: "/faq/agent-nas" },
+          { text: "NAS 中运行 Agent", link: "/faq/agent-nas" },
           { text: "Nginx 反向代理", link: "/faq/nginx" },
           { text: "使用 GitHub 进行单点登录", link: "/faq/oauth-github" },
           { text: "利用Gmail发送通知", link: "/community/smtp_gmail.md" },
