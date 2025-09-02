@@ -2,6 +2,8 @@
 
 Komari 提供了一个 JSON-RPC2 接口。你可以通过 Websocket 或 POST 调用。
 
+基础路径：`/api/rpc2`
+
 :::warning 注意
 仅 >=1.0.7 的版本可以使用 RPC2
 :::
