@@ -49,6 +49,7 @@ export default defineConfig({
         items: [
           { text: "重置密码", link: "/faq/chpasswd" },
           { text: "强制取消 2FA", link: "/faq/disable2fa" },
+          { text: "强制允许密码登录", link: "/faq/permit-login" },
           { text: "集成 Cloudflared", link: "/faq/cloudflared" },
           { text: "卸载 Agent", link: "/faq/uninstall" },
           { text: "无 root 运行 Agent", link: "/faq/agent-no-root" },
