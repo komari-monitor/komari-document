@@ -50,3 +50,23 @@ sudo nginx -s reload
 
 如需 HTTPS，请将 `listen 80;` 改为 `listen 443 ssl;` 并补充 SSL 相关配置。
 
+## 5. 兼容哪吒的gRpc代理示例
+
+```nginx
+location ^~ /proto.NezhaService/ {
+    grpc_set_header Host $host;
+    grpc_read_timeout 600s;
+    grpc_send_timeout 600s;
+    grpc_socket_keepalive on;
+    client_max_body_size 10m;
+    grpc_buffer_size 4m;
+    grpc_pass grpc://127.0.0.1:5555;
+}
+```
+
+另：
+
+- 若使用了 Cloudflare，请确保在 Cloudflare 的设置中，启用gRPC代理功能。
+- 如果使用了 HTTPS，请打开哪吒的TLS支持。
+- 兼容哪吒为娱乐功能，并无长期维护打算。
+- NTR爱好者狂喜。
