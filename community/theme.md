@@ -65,6 +65,7 @@
 ## ServerStatus-Hotaru
 
 > 下载地址: [Github](https://github.com/komari-monitor/komari-web/releases/download/1.0.3/komari-theme-hotaru.zip)
+> 
 > 源代码: [Github](https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/static/hotaru_theme_source.zip)
 
 此主题不会维护。
