@@ -422,6 +422,11 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
 
 ### GET `/api/records/ping`
 
+::: warning 注意
+此接口不会降采样数据，可能返回大量数据，影响性能。
+推荐使用RPC2接口(`common:getRecords`)获取Ping历史数据，RPC2接口提供了更丰富的功能和更好的性能。
+:::
+
 获取指定节点的 Ping 历史记录。
 
 **查询参数:**
