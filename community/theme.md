@@ -62,6 +62,31 @@
 
 ![image](https://i.111666.best/image/fjLgp8zlWY3DOW26WRDOJ3.jpeg)
 
+## ServerSentry
+
+> 项目地址: [Github](https://github.com/Asahina1096/ServerSentry-Komari)
+>
+> 开发者: [Asahina1096](https://github.com/Asahina1096)
+
+一个基于 Next.js 15 + React 19 的现代化服务器监控主题，专为 Komari 服务端设计，使用 TypeScript、Tailwind CSS 4 和现代 React 技术栈构建。
+
+### ✨ 功能特点
+
+- 🚀 **现代技术栈**：Next.js 15 + React 19 + TypeScript + Tailwind CSS 4
+- 📊 **实时监控**：CPU、内存、硬盘、SWAP、网络流量实时监控
+- 🌐 **IPv4/IPv6 支持**：智能识别和显示双栈网络状态
+- 📈 **数据可视化**：直观的进度条、图表和统计面板
+- 🎨 **现代 UI**：基于 Shadcn UI 的优雅设计，支持深色/浅色模式
+- 📱 **响应式设计**：完美适配桌面、平板和移动设备
+- ⚡ **高性能**：Turbopack 开发模式，优化的生产构建
+- 🔄 **实时更新**：2秒间隔自动刷新，支持 WebSocket 连接
+- 🏷️ **地区分组**：支持按地区分组显示服务器
+- 🧩 **模块化架构**：组件化设计，易于定制和扩展
+
+### 截图
+
+![ServerSentry Screenshot](https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/ServerSentry-theme.webp)
+
 ## ServerStatus-Hotaru
 
 > 下载地址: [Github](https://github.com/komari-monitor/komari-web/releases/download/1.0.3/komari-theme-hotaru.zip)
@@ -73,3 +98,4 @@
 ### 截图
 
 ![ServerStatus-Hotaru Screenshot](https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/hotaru-theme.png)
+
