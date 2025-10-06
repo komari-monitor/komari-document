@@ -134,8 +134,8 @@ Komari 参数传递支持指名和数组两种方式。
 | os                 | string    | 操作系统名称                                             |
 | kernel_version     | string    | 内核版本                                                 |
 | gpu_name           | string    | GPU 名称（如有）                                         |
-| ipv4               | string    | IPv4 地址（未认证不显示）                                |
-| ipv6               | string    | IPv6 地址（未认证不显示）                                |
+| ipv4               | string    | IPv4 地址（未认证不显示或部分显示）                         |
+| ipv6               | string    | IPv6 地址（未认证不显示或部分显示）                         |
 | region             | string    | 区域                                                     |
 | remark             | string    | 私有备注（未认证不显示）                                 |
 | public_remark      | string    | 公共备注（对外可见）                                     |
@@ -240,8 +240,8 @@ Komari 参数传递支持指名和数组两种方式。
 | --------------- | ------- | ----------------------------- |
 | client          | string  | 节点 UUID（客户端标识）       |
 | time            | string  | 采集时间（ISO8601，UTC）      |
-| cpu             | float64 | CPU 使用率（百分比，0-100）   |
-| gpu             | float64 | GPU 使用率（百分比，0-100）   |
+| cpu             | float64 | CPU 使用率                   |
+| gpu             | float64 | GPU 使用率                   |
 | ram             | int64   | 已用内存（字节）              |
 | ram_total       | int64   | 内存总量（字节）              |
 | swap            | int64   | 已用交换分区（字节）          |
