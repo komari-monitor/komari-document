@@ -10,9 +10,9 @@ Komari 提供了一个 JSON-RPC2 接口。你可以通过 Websocket 或 POST 调
 仅 >=1.0.7 的版本可以使用 RPC2
 :::
 
-::: tips 提示
-如果你需要React的RPC2客户端，可以使用 [Komari RPC2客户端](https://github.com/Akizon77/nezha-dash-v1/blob/main/src/hooks/use-rpc2.tsx) 与 [Komari RPC2 Hook](https://github.com/Akizon77/nezha-dash-v1/blob/main/src/hooks/use-rpc2.tsx)，使用 `SharedClient().call(method, params)` 或 `useRPC2Call` 即可。
-:::
+
+> 如果你需要React的RPC2客户端，可以使用 [Komari RPC2客户端](https://github.com/Akizon77/nezha-dash-v1/blob/main/src/lib/rpc2.ts) 与 [Komari RPC2 Hook](https://github.com/Akizon77/nezha-dash-v1/blob/main/src/hooks/use-rpc2.tsx)，使用 `SharedClient().call(method, params)` 或 `useRPC2Call` 即可。
+
 
 ## 基础文档
 
