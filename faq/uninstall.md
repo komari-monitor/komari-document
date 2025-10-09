@@ -1,5 +1,7 @@
 # Komari Agent 卸载指南
 
+> 如果你想禁用Windows上的警告，请关闭远程控制。
+
 本文档将指导您如何从系统中完全卸载 Komari Agent。
 
 ## Windows
