@@ -14,6 +14,14 @@ export default defineConfig({
         crossorigin: "anonymous",
       },
     ],
+    [
+      "script",
+      {
+        async: "",
+        src: "/assets/cn.js",
+        crossorigin: "anonymous",
+      },
+    ]
   ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
