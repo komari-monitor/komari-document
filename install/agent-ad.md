@@ -71,8 +71,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iwr 'https://raw.git
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--include-mountpoint` | 无 | 包含的挂载点列表（分号分隔） |
-| `--month-rotate` | `0` | 网络统计月度重置（0 为禁用） |
+| `--include-mountpoint` | 无 | 包含的挂载点列表(分号分隔) |
+| `--month-rotate` | `0` | 网络统计月度重置(0 为禁用) |
+
+#### 安装脚本专用参数
+
+:::info 说明
+以下参数仅作用于安装脚本本身,不会写入 Agent 程序配置。
+:::
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--install-dir` | `/opt/komari` (Linux)<br/>`$Env:ProgramFiles\Komari` (Windows) | 指定 Agent 安装目录 |
+| `--install-service-name` | `komari-agent` | 指定系统服务名称 |
+| `--install-ghproxy` | 无 | 指定 GitHub 代理地址,用于加速下载 |
+| `--install-version` | `latest` | 指定要安装的 Agent 版本 |
 
 ## 使用示例
 
