@@ -50,6 +50,7 @@ export default defineConfig({
           { text: "API 接口", link: "/dev/api" },
           { text: "Agent 开发", link: "/dev/agent" },
           { text: "RPC 接口", link: "/dev/rpc" },
+          { text: "本地开发", link: "/dev/local" },
         ],
       },
       {
