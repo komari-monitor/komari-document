@@ -10,7 +10,7 @@ export default defineConfig({
       "script",
       {
         async: "",
-        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2394611077475390",
+        src: "/assets/clarity.js",
         crossorigin: "anonymous",
       },
     ],
