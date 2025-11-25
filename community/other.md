@@ -8,4 +8,4 @@
 
 看看你的鸡还值多少钱! 一键统计所有机器价值，一键分享。
 
-在线体验: [Cloudflare Pages](https://vps-price-calculator.pages.dev/)
+在线体验: [Cloudflare Pages](https://vps-price-calculator.pages.dev/) [镜像站地址](https://vps-price-calculator.komari.wiki/)
