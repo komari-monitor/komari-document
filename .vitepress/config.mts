@@ -21,7 +21,7 @@ export default defineConfig({
         src: "/assets/cn.js",
         crossorigin: "anonymous",
       },
-    ]
+    ],
   ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -63,6 +63,7 @@ export default defineConfig({
           { text: "卸载 Agent", link: "/faq/uninstall" },
           { text: "无 root 运行 Agent", link: "/faq/agent-no-root" },
           { text: "Nginx 反向代理", link: "/faq/nginx" },
+          { text: "其他常见问题", link: "/faq/faq" },
         ],
       },
       {
