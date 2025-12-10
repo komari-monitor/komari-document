@@ -74,6 +74,10 @@ export default defineConfig({
         text: "社区文档",
         items: [
           { text: "使用 GitHub 进行单点登录", link: "/faq/oauth-github" },
+          {
+            text: "使用 Cloudflare Access 登录",
+            link: "/community/cloudflare_access",
+          },
           { text: "利用Gmail发送通知", link: "/community/smtp_gmail.md" },
           { text: "NAS 中运行 Agent", link: "/faq/agent-nas" },
         ],
