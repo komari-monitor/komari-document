@@ -3,9 +3,10 @@
 Komari 使用了 Go + React 技术栈进行开发。如果您想在本地进行二次开发或调试，可以参考以下步骤：
 
 ## 环境准备
+
 0. 安装 [Git](https://git-scm.com/)。
 
-1. 安装 [Go](https://go.dev/dl/)（建议版本 1.18 及以上）。
+1. 安装 [Go](https://go.dev/dl/)（建议版本 1.24 及以上）。
 
 2. 安装 [Node.js](https://nodejs.org/)（建议版本 20 及以上）。
 
