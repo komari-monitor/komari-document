@@ -34,4 +34,5 @@ docker logs komari
 - [Docker 部署](/install/docker)
 - [二进制安装](/install/binary)
 - [手动编译](/install/compile)
+- [1Panel 部署](/install/1panel)
 - [更新](/install/update)

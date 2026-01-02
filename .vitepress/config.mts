@@ -39,6 +39,7 @@ export default defineConfig({
           { text: "Docker 部署", link: "/install/docker" },
           { text: "二进制安装", link: "/install/binary" },
           { text: "手动编译", link: "/install/compile" },
+          { text: "1Panel 部署", link: "/install/1panel" },
           { text: "更新", link: "/install/update" },
           { text: "Agent 自动发现", link: "/install/agent-ad" },
         ],
