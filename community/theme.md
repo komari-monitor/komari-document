@@ -50,7 +50,7 @@
 
 ## Naive
 
-> 项目地址：[Github](https://github.com/lyimoexiao/komari-web-naive)
+> 项目地址：[Github](https://github.com/lyimoexiao/komari-theme-naive)
 > 
 > 开发者：[Lyi.](https://github.com/lyimoexiao)
 
