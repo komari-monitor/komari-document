@@ -48,6 +48,24 @@
 
 ![image](https://i.111666.best/image/Os7F4bwuyR7F6I78zDCvPI.jpeg)
 
+## Naive
+
+> 项目地址：[Github](https://github.com/lyimoexiao/komari-theme-naive)
+> 
+> 开发者：[Lyi.](https://github.com/lyimoexiao)
+
+基于 Vue 3 + Vite + Naive UI 构建的 Komari Monitor 主题。
+
+### 🌟 核心特性
+
+- **🔧 Vue 全家桶**: Vue 3 + Pinia + UnoCSS
+- **📱 响应式优化**: 适配桌面、平板和移动设备
+- **⚡ 轻量化设计**: 极小的包体积，快速的加载体验
+
+### 截图
+
+![Naive Theme Preview](https://raw.githubusercontent.com/lyimoexiao/komari-theme-naive/master/docs/preview.png)
+
 ## Next
 
 > 项目地址：[Github](https://github.com/tonyliuzj/komari-next)
