@@ -63,6 +63,7 @@ export default defineConfig({
           { text: "集成 Cloudflared", link: "/faq/cloudflared" },
           { text: "卸载 Agent", link: "/faq/uninstall" },
           { text: "无 root 运行 Agent", link: "/faq/agent-no-root" },
+          { text: "通过 HTTP 接口上报信息", link: "/faq/upload-via-http" },
           { text: "Nginx 反向代理", link: "/faq/nginx" },
           { text: "其他常见问题", link: "/faq/faq" },
         ],
@@ -81,6 +82,7 @@ export default defineConfig({
           },
           { text: "利用Gmail发送通知", link: "/community/smtp_gmail.md" },
           { text: "NAS 中运行 Agent", link: "/faq/agent-nas" },
+          { text: "Mikrotik 路由器接入探针", link: "/faq/agent-mikrotik" },
         ],
       },
       {
