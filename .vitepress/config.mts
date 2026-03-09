@@ -79,6 +79,7 @@ export default defineConfig({
             text: "使用 Cloudflare Access 登录",
             link: "/community/cloudflare_access",
           },
+          { text: "将节点 IP 同步到 Git", link: "/community/git-sync" },
           { text: "利用Gmail发送通知", link: "/community/smtp_gmail.md" },
           { text: "NAS 中运行 Agent", link: "/faq/agent-nas" },
         ],
