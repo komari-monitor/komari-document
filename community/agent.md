@@ -52,7 +52,7 @@ Komari 社区成员们积极贡献并共同维护着一系列 Agent 项目。这
 
 ## komari-agent-webhost
 
-> 项目地址：[Github](https://https://github.com/liveqte/komari-agent-webhost)
+> 项目地址：[Github](https://github.com/liveqte/komari-agent-webhost)
 > 
 > 开发者：[liveqte](https://github.com/liveqte)
 
