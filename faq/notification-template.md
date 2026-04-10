@@ -60,7 +60,7 @@ Komari 提供以下模板变量，可在通知模板中使用。
 Client 结构体见：https://github.com/komari-monitor/komari/blob/b62fb1f70889fc1ac94e7c58ed928d7a27df5d09/database/models/models.go#L10
 
 
-### 示例代码
+### Telegram 示例代码
 
 ```javascript
 
@@ -195,4 +195,135 @@ async function sendEvent(event) {
 }
 
 
+```
+
+### Gotify 示例代码
+
+```javascript
+async function sendMessage(message, title) {
+  const gotifyUrl = "https://114514.zip"; // 替换为你的 Gotify 服务器地址
+  const token = "114514"; // 替换为你的应用 Token
+  const priority = 5;
+
+  if (!gotifyUrl || gotifyUrl === 'https://push.example.com') {
+    console.error('Gotify URL 未设置。消息未发送。');
+    return false;
+  }
+  if (!token || token === 'REPLACE_WITH_TOKEN') {
+    console.error('Gotify App Token 未设置。消息未发送。');
+    return false;
+  }
+
+  const baseUrl = gotifyUrl.endsWith('/') ? gotifyUrl.slice(0, -1) : gotifyUrl;
+  const url = `${baseUrl}/message?token=${token}`;
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: message,
+        title: title,
+        priority: priority,
+        extras: {
+          "client::display": {
+            "contentType": "text/markdown"
+          }
+        }
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error('发送消息到 Gotify 失败:', resp.status, resp.statusText);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('发送消息到 Gotify 出错:', e);
+    return false;
+  }
+}
+
+async function sendEvent(event) {
+  try {
+    const formatTime = (timeStr) => {
+      const date = new Date(timeStr);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'Asia/Shanghai'
+      });
+    };
+
+    const getEventTypeDesc = (eventType) => {
+      const eventMap = {
+        'Offline': '❌ 服务器离线',
+        'Online': '✅ 服务器上线',
+        'Alert': '⚠️ 监控告警',
+        'Renew': '⏰ 服务器已自动续费',
+        'Expire': '🚨 服务到期提醒',
+        'Test': '🧪 测试通知'
+      };
+      return eventMap[eventType] || `📊 ${eventType}`;
+    };
+
+    const generateClientSummary = (client) => {
+      let parts = [];
+      parts.push(`**${client.name || 'Unknown'}**`);
+      if (client.region) parts.push(`${client.region}`);
+      return parts.join(' • ');
+    };
+
+    const title = `${getEventTypeDesc(event.event) || 'ℹ️'} Komari 通知`;
+    let message = '';
+
+    message += `时间: ${formatTime(event.time)}\n`;
+
+    if (event.message && event.message.trim()) {
+      message += `说明: ${event.message}\n`;
+    }
+
+    message += '\n';
+
+    if (event.clients && event.clients.length > 0) {
+      if (event.clients.length === 1) {
+        message += generateClientSummary(event.clients[0]);
+      } else {
+        message += `影响服务器: ${event.clients.length} 台\n`;
+        const shown = event.clients.length;
+        for (let i = 0; i < shown; i++) {
+          message += `${i + 1}. ${generateClientSummary(event.clients[i])}\n`;
+        }
+      }
+    } else {
+      message += '无关联服务器信息';
+    }
+    
+    const success = await sendMessage(message, title);
+    if (success) {
+      console.log(`事件通知已发送: ${event.event}`);
+    } else {
+      console.error(`事件通知发送失败: ${event.event}`);
+    }
+    return success;
+    
+  } catch (error) {
+    console.error('发送事件通知时出错:', error);
+    
+    const fallbackMessage = `${event.emoji || ''} ${event.event}\n${event.message || ''}`;
+    const fallbackTitle = 'Komari 通知';
+    try {
+      return await sendMessage(fallbackMessage, fallbackTitle);
+    } catch (fallbackError) {
+      console.error('备用通知也失败:', fallbackError);
+      return false;
+    }
+  }
+}
 ```
