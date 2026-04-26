@@ -46,7 +46,7 @@
 
 ### 截图
 
-![image](https://img.dpik.top/image/d780cf4febdd266bfd048f6839404824))
+![image](https://img.dpik.top/image/d780cf4febdd266bfd048f6839404824)
 
 ## Naive
 
