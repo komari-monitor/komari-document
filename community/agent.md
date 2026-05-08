@@ -2,6 +2,33 @@
 
 Komari 社区成员们积极贡献并共同维护着一系列 Agent 项目。这些项目丰富了 Komari 的功能。感谢所有参与者的努力和贡献。
 
+## komari-zig-agent
+
+> 项目地址：[Github](https://github.com/luodaoyi/komari-zig-agent)
+>
+> 开发者：[luodaoyi](https://github.com/luodaoyi)
+
+`komari-zig-agent` 是使用 Zig 编写的 Komari Agent，目标是直接替换原 Go 版 Agent，并保持 Komari 现有协议、上报字段、任务、Ping、Web SSH、自更新等行为兼容。
+
+它的重点是**低资源占用**，适合小内存 VPS、OpenWrt、ARM/MIPS 设备等资源紧张的环境。根据项目仓库中的测试数据，Zig 版 linux-amd64 二进制体积约为 `702 KB`，常驻 RSS 约 `1.2 MB`，相比原 Go Agent 明显更低；在 systemd 下的当前内存记账可低于 `1 MB`。
+
+| 指标 | 原 Go Agent | Zig Agent |
+| --- | ---: | ---: |
+| linux-amd64 二进制大小 | 约 `8.6 MB` | 约 `702 KB` |
+| 常驻 RSS | 约 `17.8 MB` | 约 `1.2 MB` |
+| 线程数 | 约 `9` | 约 `4` |
+| CPU 占用 | 约 `0.6%` | 约 `0.1%` |
+
+:::tip 一键替换原 Agent
+如果机器上已经安装了原 Go 版 `komari-agent`，可以使用以下命令一键替换为 Zig 版：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/luodaoyi/komari-zig-agent/main/replace.sh | sudo sh
+```
+
+替换脚本会自动识别系统和 CPU 架构，下载对应 Release 资产，校验 `SHA256SUMS`，备份原二进制，并在替换后重启原服务。替换过程不会修改已有的 endpoint、token、上报间隔等业务参数。
+:::
+
 ## komari-monitor-rs
 
 > 项目地址：[Github](https://github.com/GenshinMinecraft/komari-monitor-rs)
