@@ -152,6 +152,7 @@ Komari 参数传递支持指名和数组两种方式。
 | billing_cycle      | int       | 计费周期（单位：天）                                     |
 | auto_renewal       | bool      | 是否自动续费                                             |
 | currency           | string    | 货币符号（默认 `$`）                                     |
+| currency_code      | string    | 货币代码（默认 `USD`）                                   |
 | expired_at         | LocalTime | 到期时间                                                 |
 | group              | string    | 分组名称                                                 |
 | tags               | string    | 标签（以 `;` 分隔的字符串）                              |
