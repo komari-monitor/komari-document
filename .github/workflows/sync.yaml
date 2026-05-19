@@ -4,13 +4,11 @@ name: Upstream Sync
 permissions:
   contents: write
   issues: write
-  actions: write
-  pull-requests: write
 
 on:
   schedule:
-    - cron: '0 */6 * * *'   # 每 6 小时检查一次
-  workflow_dispatch:        # 手动触发按钮
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   sync_latest_from_upstream:
@@ -21,26 +19,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.BOT_TOKEN }}
 
-      # 关闭历史失败工单
       - name: Clean issue notice
         uses: actions-cool/issues-helper@v3
         with:
           actions: 'close-issues'
           labels: '🚨 Sync Fail'
+          token: ${{ secrets.BOT_TOKEN }}
 
-      # 真正同步
       - name: Sync upstream changes
         id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
-        with:
-          upstream_sync_repo: komari-monitor/komari-document
-          upstream_sync_branch: main
-          target_sync_branch: main
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
-          test_mode: false
+        run: |
+          git config user.name "Geekertao-bot"
+          git config user.email "Geekertao@qq.com"
+          git remote add upstream https://github.com/komari-monitor/komari-document.git
+          git fetch upstream main
+          git checkout main
+          git merge upstream/main --allow-unrelated-histories
+          git push origin main
 
-      # 失败时开单提醒
       - name: Sync check
         if: failure()
         uses: actions-cool/issues-helper@v3
@@ -52,3 +50,4 @@ jobs:
             Due to a change in the workflow file of the [komari-document][upstream] upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork.
             由于 [komari-document][upstream] 上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次。
             [upstream]: https://github.com/komari-monitor/komari-document
+          token: ${{ secrets.BOT_TOKEN }}
