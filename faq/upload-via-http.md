@@ -53,7 +53,8 @@
 ```json
 {
   "arch": "amd64", // 系统架构
-  "cpu_cores": 12, // CPU 核心数
+  "cpu_cores": 12, // CPU 逻辑核心数
+  "cpu_physical_cores": 6, // CPU 物理核心数，未知时为 0
   "cpu_name": "AMD Ryzen 9 9950X3D", // CPU 名称
   "disk_total": 1099511627776, // 磁盘空间
   "gpu_name": "NVIDIA GeForce RTX 5090", // 显卡名称

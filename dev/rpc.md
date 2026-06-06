@@ -135,6 +135,7 @@ Komari 参数传递支持指名和数组两种方式。
 | virtualization     | string    | 虚拟化类型                                               |
 | arch               | string    | 系统架构（如 amd64, arm64）                              |
 | cpu_cores          | int       | CPU 逻辑核心数                                           |
+| cpu_physical_cores | int       | CPU 物理核心数，`0` 表示未上报或未知                     |
 | os                 | string    | 操作系统名称                                             |
 | kernel_version     | string    | 内核版本                                                 |
 | gpu_name           | string    | GPU 名称（如有）                                         |
