@@ -26,7 +26,7 @@ theme.zip
 ```json
 {
     "name": "Komari Test Theme",
-    "short": "TestTheme", // 唯一标识符，只能包含大小写字母和数字
+    "short": "TestTheme", // 唯一标识符，只能包含大小写字母、数字、下划线和连字符
     "description": "A test theme for Komari",
     "version": "1.0.0",
     "author": "Akizon77",
@@ -41,13 +41,17 @@ theme.zip
 | 字段 | 类型 | 必需 | 描述 |
 |------|------|------|------|
 | `name` | string | 是 | 主题的完整名称 |
-| `short` | string | 是 | 主题的唯一标识符，只能包含大小写字母和数字 |
-| `description` | string | 是 | 主题的描述信息 |
-| `version` | string | 是 | 主题版本号，建议使用语义化版本 |
-| `author` | string | 是 | 主题作者 |
+| `short` | string | 是 | 主题的唯一标识符，只能包含大小写字母、数字、下划线和连字符；不能为空，且不能为 `default` |
+| `description` | string | 否（建议） | 主题的描述信息；未填写时后台列表会显示为空 |
+| `version` | string | 否（建议） | 主题版本号，建议使用语义化版本；未填写时后台列表会显示为空 |
+| `author` | string | 否（建议） | 主题作者；未填写时后台列表会显示为空 |
 | `url` | string | 否 | 主题的项目地址或作者网站 |
 | `preview` | string | 否 | 预览图片的相对路径（相对于主题根目录） |
 | `configuration` | object | 否 | 主题的动态配置（自 1.0.5 起支持） |
+
+::: tip 提示
+后端安装主题时只强制校验 `name` 和 `short`，但建议补全 `description`、`version`、`author` 等展示字段，避免管理后台出现空信息。
+:::
 
 ## 动态配置（自 1.0.5 起支持）
 
@@ -71,11 +75,12 @@ theme.zip
         "icon": "/themes/Mochi/dist/assets/os-debian.svg",
         "name": "微调Mochi",
         "data": [
-            { "name": "测试标题", "type": "title" },
+            { "name": { "zh-CN": "基础设置", "en": "General" }, "type": "title" },
             { "key": "switch_A", "name": "测试开关", "type": "switch", "default": true, "help": "这是一个测试开关" },
             { "key": "select_A", "name": "测试选择", "type": "select", "options": "选项1,选项2,选项3", "default": "选项1", "help": "这是一个测试选择" },
             { "key": "number_A", "name": "测试输入框(数字)", "type": "number", "default": 10, "help": "这是一个测试输入框" },
-            { "key": "string_A", "name": "测试输入框2", "type": "string", "required": true, "help": "这是一个测试输入框" }
+            { "key": "string_A", "name": "测试输入框2", "type": "string", "required": true, "help": "这是一个测试输入框" },
+            { "key": "footer_html", "name": "页脚 HTML", "type": "richtext", "default": "", "help": "支持较长 HTML 文本" }
         ]
     }
 }
@@ -87,20 +92,20 @@ theme.zip
 |------|------|------|------|
 | `type` | string | 是 | 目前固定为 `managed` |
 | `icon` | string | 否 | 设置面板的图标 URL。支持绝对/相对路径。`/themes/{short}/` 指向主题根目录，可用：`/themes/Mochi/dist/...` `https://img.com/img.png` |
-| `name` | string | 否 | 在管理面板展示的配置标题；未填写可由系统回退到主题名 |
+| `name` | string \| object | 否 | 在管理面板展示的配置标题；支持多语言对象；未填写可由系统回退到主题名 |
 | `data` | array | 是 | 配置项数组（见下表） |
 
 ### 配置项（data 数组元素）
 
 | 字段 | 适用类型 | 必需 | 描述 |
 |------|----------|------|------|
-| `type` | 全部 | 是 | `string` / `number` / `select` / `switch` / `title` |
-| `name` | 全部 | 是 | 显示名称；`title` 类型用于分组标题，不需要 `key` |
+| `type` | 全部 | 是 | `string` / `number` / `select` / `switch` / `richtext` / `title` |
+| `name` | 全部 | 是 | 显示名称，支持字符串或多语言对象；`title` 类型用于分组标题，不需要 `key` |
 | `key` | 除 `title` | 是 | 唯一键 |
 | `required` | `string` | 否 | 是否必填（默认 `false`） |
 | `options` | `select` | 是 | 逗号分隔的选项：`"A,B,C"` |
 | `default` | 除 `title` | 否 | 默认值 |
-| `help` | 除 `title` | 否 | 帮助提示文本 |
+| `help` | 除 `title` | 否 | 帮助提示文本，支持字符串或多语言对象 |
 
 #### 类型含义
 
@@ -109,13 +114,43 @@ theme.zip
 - `number`: 数字输入，前端需自行校验范围。
 - `select`: 下拉选择，`options` 为必填。
 - `switch`: 布尔开关，值为 `true/false`。
+- `richtext`: 长文本输入，适合 HTML 片段或较长配置文本。
+
+### 多语言文本
+
+`configuration.name`、配置项的 `name` 和 `help` 可以是字符串，也可以是多语言对象：
+
+```json
+{
+    "name": {
+        "zh-CN": "背景图片 URL",
+        "en": "Background Image URL",
+        "ja": "背景画像 URL"
+    }
+}
+```
+
+前端会优先匹配当前语言（如 `zh-CN`），然后匹配基础语言（如 `zh`），最后回退到对象中的第一个值。
+
+### 默认值与公开数据
+
+`/api/public` 返回的 `theme_settings` 会公开当前主题的动态配置值。对于已安装且非 `default` 的 `managed` 主题，后端会把已保存配置和 `komari-theme.json` 中声明的默认值合并：
+
+- 已保存的值优先。
+- `select` 未设置 `default` 时，会使用 `options` 中的第一个选项。
+- `number` 未设置 `default` 时默认 `0`。
+- `switch` 未设置 `default` 时默认 `false`。
+- `string` / `richtext` 等其他类型未设置 `default` 时默认空字符串。
+
+这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。
 
 ### 空值与兼容性处理
 
 请在前端处理以下情况：
 
 1. `configuration` 字段不存在（< 1.0.5 的旧主题）。
-2. `configuration` 存在但 `data` 为 `null` 或空对象。
+2. `configuration` 存在但 `data` 为 `null`、空数组或不是数组。
+3. 某个配置项缺少 `key`（`title` 类型除外）或类型未知。
 
 ### 图标与资源路径
 

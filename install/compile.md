@@ -12,11 +12,16 @@
    git clone https://github.com/komari-monitor/komari
    cd komari
    ```
-   将步骤1中生成的静态文件复制到 `komari` 项目根目录下的 `/public/dist` 文件夹。
+   将步骤1中生成的静态文件复制到 `komari` 项目中的 `web/public/defaultTheme/dist` 文件夹，并复制主题配置文件：
+   ```bash
+   mkdir -p web/public/defaultTheme/dist
+   cp -r ../komari-web/dist/* web/public/defaultTheme/dist/
+   cp ../komari-web/komari-theme.json web/public/defaultTheme/
+   ```
    ```bash 
    CGO_ENABLED=1 go build -o komari
    ```
-4. 运行：
+3. 运行：
    ```bash
    ./komari server -l 0.0.0.0:25774
    ```
