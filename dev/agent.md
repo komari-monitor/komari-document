@@ -292,10 +292,13 @@ Server response：
 
 基础信息包含以下静态系统信息：
 
+其中 `cpu_physical_cores` 为可选的物理核心数；当 Agent 或兼容接入方无法提供该值时 `0` 表示未上报或未知。
+
 ```json
 {
   "arch": "amd64",
   "cpu_cores": 12,
+  "cpu_physical_cores": 6,
   "cpu_name": "AMD Ryzen 9 9950X3D",
   "disk_total": 1099511627776,
   "gpu_name": "NVIDIA GeForce RTX 5090",
