@@ -182,7 +182,7 @@ Komari 参数传递支持指名和数组两种方式。
 
 | 字段                      | 类型   | 说明                                                     |
 | ------------------------- | ------ | -------------------------------------------------------- |
-| allow_cors                | bool   | 是否允许 CORS（跨域）。                                  |
+| cors_origin_check_enabled | bool   | 是否启用 CORS 跨域请求校验；开启后 API 请求只允许同源或允许列表中的地址，API Key 请求会绕过该校验。 |
 | custom_body               | string | 注入到页面 `<body>` 尾部的自定义 HTML 片段。             |
 | custom_head               | string | 注入到页面 `<head>` 内的自定义 HTML（如样式 / 脚本）。   |
 | description               | string | 站点描述。                                               |
