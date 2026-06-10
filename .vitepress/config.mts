@@ -70,7 +70,10 @@ export default defineConfig({
       },
       {
         text: "配置指南",
-        items: [{ text: "通知模板", link: "/faq/notification-template" }],
+        items: [
+          { text: "通知模板", link: "/faq/notification-template" },
+          { text: "流量定时报告", link: "/faq/traffic-report" },
+        ],
       },
       {
         text: "社区文档",
