@@ -6,6 +6,9 @@ hero:
   name: "Komari"
   text: ""
   tagline: 轻量级的自托管服务器监控工具
+  image:
+    src: /assets/favicon.png
+    alt: Komari
   actions:
     - theme: brand
       text: 立刻开始
@@ -22,4 +25,3 @@ features:
   - title: Web 界面
     details: 直观的监控仪表盘，易于使用。
 ---
-
