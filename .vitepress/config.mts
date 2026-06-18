@@ -6,6 +6,7 @@ export default defineConfig({
   title: "Komari",
   description: "Komari Monitor Document",
   head: [
+    ["link", { rel: "icon", type: "image/png", href: "/assets/favicon.png" }],
     [
       "script",
       {
@@ -25,6 +26,7 @@ export default defineConfig({
   ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    logo: { src: "/assets/favicon.png", alt: "Komari" },
     nav: [
       { text: "主页", link: "/" },
       { text: "快速开始", link: "/install/quick-start" },
