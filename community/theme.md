@@ -46,7 +46,7 @@
 
 ### 截图
 
-![image](https://i.111666.best/image/Os7F4bwuyR7F6I78zDCvPI.jpeg)
+![image](https://img.dpik.top/image/d780cf4febdd266bfd048f6839404824)
 
 ## Naive
 
@@ -64,9 +64,9 @@
 
 ### 截图
 
-![Naive Theme Preview](https://raw.githubusercontent.com/lyimoexiao/komari-theme-naive/master/docs/preview.png)
+![Naive Theme Preview](https://gh.dpik.top/https://raw.githubusercontent.com/lyimoexiao/komari-theme-naive/master/docs/preview.png)
 
-## Next
+## 下一页
 
 > 项目地址：[Github](https://github.com/tonyliuzj/komari-next)
 >
@@ -91,7 +91,7 @@
 
 ### 截图
 
-![Theme Showcase](https://github.com/tonyliuzj/komari-next/raw/main/images/dark-theme.png)
+![Theme Showcase](https://gh.dpik.top/https://github.com/tonyliuzj/komari-next/raw/main/images/dark-theme.png)
 
 ## PurCarte
 
@@ -105,7 +105,7 @@
 
 ### 截图
 
-![image](https://i.111666.best/image/fjLgp8zlWY3DOW26WRDOJ3.jpeg)
+![image](https://img.dpik.top/image/7a61226f5ed6b6bcf54b95fb6d21e73c)  
 
 ## ServerSentry
 
@@ -130,7 +130,7 @@
 
 ### 截图
 
-![ServerSentry Screenshot](https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/ServerSentry-theme.webp)
+![ServerSentry Screenshot](https://gh.dpik.top/https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/ServerSentry-theme.webp)
 
 ## ServerStatus-Hotaru
 
@@ -142,5 +142,5 @@
 
 ### 截图
 
-![ServerStatus-Hotaru Screenshot](https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/hotaru-theme.png)
+![ServerStatus-Hotaru Screenshot](https://gh.dpik.top/https://raw.githubusercontent.com/komari-monitor/public/refs/heads/main/images/hotaru-theme.png)
 

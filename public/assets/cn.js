@@ -20,7 +20,11 @@
         var loc = traceData.loc || ''
         var ip = traceData.ip || ''
 
-        if (loc === 'CN' && !location.href.includes('www.komari.wiki')) {
+        // 排除已知的镜像站域名
+        var isMirrorSite = location.href.includes('www.komari.wiki') || 
+                           location.href.includes('ghpages.komari.wiki')
+
+        if (loc === 'CN' && !isMirrorSite) {
           showNotification(ip, loc)
         }
       })
@@ -139,4 +143,4 @@
   } catch (e) {
     console.error('Error checking for CN user:', e)
   }
-})()();
+})()
