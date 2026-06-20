@@ -1,5 +1,9 @@
 # 将 Komari 节点 IP 自动同步到 Git
 
+:::warning 版本提示
+此功能将在下一个大版本 Komari `1.3` 中移除。请不要在新的生产环境中继续依赖该方案，已有部署也建议提前规划替代方案。
+:::
+
 > 项目地址：[Github](https://github.com/constansino/komari-git-sync)
 >
 > 开发者：[constansino](https://github.com/constansino)

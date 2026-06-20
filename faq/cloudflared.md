@@ -1,5 +1,9 @@
 # 集成 Cloudflared Tunnels 指南
 
+:::warning 版本提示
+此功能将在下一个大版本 Komari `1.3` 中移除。请不要在新的生产环境中继续依赖该方案，已有部署也建议提前规划替代方案。
+:::
+
 本文档介绍如何在 Komari 中集成 Cloudflared Tunnels。
 
 ## 1. 通过环境变量启用 Cloudflared
@@ -41,7 +45,7 @@ docker run -d \
 或者，您可以在 `docker-compose.yml` 文件中定义环境变量：
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   komari:
     image: ghcr.io/komari-monitor/komari:latest
