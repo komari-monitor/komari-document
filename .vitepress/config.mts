@@ -8,6 +8,14 @@ export default defineConfig({
   head: [
     ["link", { rel: "icon", type: "image/png", href: "/assets/favicon.png" }],
     [
+      "link",
+      {
+        rel: "icon",
+        type: "image/png",
+        href: "/assets/favicon.png",
+      },
+    ],
+    [
       "script",
       {
         async: "",
