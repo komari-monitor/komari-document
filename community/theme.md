@@ -4,6 +4,26 @@
 
 以下内容按照A-Z排序。
 
+## Kumo
+
+> 项目地址：[Github](https://github.com/yuanhhs/komari-theme-kumo)
+>
+> 开发者：[Yuanhhs](https://github.com/yuanhhs)
+
+一个基于 Cloudflare Kumo 设计系统构建的简洁响应式 Komari 监控主题，使用 Next.js 15、React 19、Tailwind CSS v4 与 JSON-RPC2 构建。
+
+### 功能特点
+
+- 响应式网格 / 列表视图，支持搜索、分组筛选和后台默认配置
+- 节点卡片展示 CPU、内存、磁盘、网络速度、总流量和到期信息
+- 节点详情包含负载、网络、流量总量和网络延迟图表
+- 支持浅色 / 深色 / 跟随系统、主题色、实心 / 磨砂卡片
+- 支持图床背景图和动态壁纸视频背景，并可在后台持久化配置
+
+### 截图
+
+![Kumo Theme Preview](https://raw.githubusercontent.com/yuanhhs/komari-theme-kumo/main/.preview/preview.png)
+
 ## Light
 
 > 项目地址：[Github](https://github.com/uvexz/komari-theme-light)
