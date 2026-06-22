@@ -22,7 +22,7 @@
 
 ### 截图
 
-![Kumo Theme Preview](/assets/theme-kumo.png)
+![Kumo Theme Preview](https://raw.githubusercontent.com/yuanhhs/komari-theme-kumo/main/.preview/preview.png)
 
 ## Light
 
