@@ -70,23 +70,24 @@
 
 ## Mikus
 
-> 项目地址：[Github](https://github.com/yuanhhs/komari-theme-kumo)
+> 项目地址：[Github](https://github.com/mikus-loli/komari-mikus)
 >
-> 开发者：[Yuanhhs](https://github.com/yuanhhs)
+> 开发者：[Mikus-loli](https://github.com/mikus-loli)
 
-一个基于 Cloudflare Kumo 设计系统构建的简洁响应式 Komari 监控主题，使用 Next.js 15、React 19、Tailwind CSS v4 与 JSON-RPC2 构建。
+一个现代化、优雅的 Komari 监控主题，支持明暗主题切换、网格/表格双视图、WebSocket 实时监控和响应式设计。
 
-### 功能特点
+### 特性
 
-- 响应式网格 / 列表视图，支持搜索、分组筛选和后台默认配置
-- 节点卡片展示 CPU、内存、磁盘、网络速度、总流量和到期信息
-- 节点详情包含负载、网络、流量总量和网络延迟图表
-- 支持浅色 / 深色 / 跟随系统、主题色、实心 / 磨砂卡片
-- 支持图床背景图和动态壁纸视频背景，并可在后台持久化配置
+- 🎨 **双主题支持** - 浅色/深色主题无缝切换，支持跟随系统
+- 📊 **双视图模式** - 网格视图和表格视图自由切换
+- 🌐 **多语言支持** - 内置中英文切换
+- 📡 **WebSocket 实时监控** - 实时数据更新
+- 📱 **响应式设计** - 完美适配各种设备
+- 🏳️ **国旗图标** - 支持全球国家和地区旗帜显示
 
 ### 截图
 
-![Kumo Theme Preview](https://raw.githubusercontent.com/yuanhhs/komari-theme-kumo/main/.preview/preview.png)
+![Mikus Theme Preview](https://image.mikus.ink/uploads/HayasakaAi/2026/07/05/d3eab55445a8.webp)
 
 ## Naive
 
