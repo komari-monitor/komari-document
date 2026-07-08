@@ -28,5 +28,5 @@ features:
   - title: Themeable
     details: Use the built-in UI or build custom themes with documented public APIs and configuration schemas.
   - title: Integration ready
-    details: Connect reverse proxies, OAuth, Cloudflare Access, notification providers, and external scripts.
+    details: Connect reverse proxies, OAuth, notification providers, and external scripts.
 ---

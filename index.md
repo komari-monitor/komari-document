@@ -29,5 +29,5 @@ features:
   - title: 主题可扩展
     details: 使用默认界面，或基于公开 API 与配置规范开发自定义主题。
   - title: 易于集成
-    details: 可接入反向代理、OAuth、Cloudflare Access、通知渠道和外部脚本。
+    details: 可接入反向代理、OAuth、通知渠道和外部脚本。
 ---

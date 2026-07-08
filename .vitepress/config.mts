@@ -91,10 +91,6 @@ const zhSidebar = [
     text: "社区文档",
     items: [
       { text: "使用 GitHub 进行单点登录", link: "/faq/oauth-github" },
-      {
-        text: "使用 Cloudflare Access 登录",
-        link: "/community/cloudflare_access",
-      },
       { text: "将节点 IP 同步到 Git", link: "/community/git-sync" },
       { text: "利用 Gmail 发送通知", link: "/community/smtp_gmail" },
       { text: "NAS 中运行 Agent", link: "/faq/agent-nas" },
@@ -157,10 +153,6 @@ const enSidebar = [
     text: "Community Guides",
     items: [
       { text: "GitHub OAuth Login", link: "/en/faq/oauth-github" },
-      {
-        text: "Cloudflare Access Login",
-        link: "/en/community/cloudflare_access",
-      },
       { text: "Sync Node IPs to Git", link: "/en/community/git-sync" },
       {
         text: "Send Notifications with Gmail",

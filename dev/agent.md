@@ -109,7 +109,6 @@ POST 请求体仍为 JSON-RPC2：
 
 - `Content-Type: application/json`
 - `Content-Encoding: gzip`：可选。v2 默认允许 gzip 压缩；禁用压缩时不发送该头。
-- Cloudflare Access 场景下继续携带 `CF-Access-Client-Id` 与 `CF-Access-Client-Secret`。
 
 POST 响应表示本次 JSON-RPC 请求是否处理成功，也可以携带服务器待下发事件。POST fallback 需要承载事件下发时，Agent 必须设置非空 `id` 并读取 JSON-RPC response；`id` 为 `null` 是 JSON-RPC notification，服务端不应依赖 response 向 Agent 下发事件。
 
