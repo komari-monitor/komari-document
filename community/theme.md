@@ -68,6 +68,27 @@
 
 ![image](https://i.111666.best/image/Os7F4bwuyR7F6I78zDCvPI.jpeg)
 
+## Mikus
+
+> 项目地址：[Github](https://github.com/mikus-loli/komari-mikus)
+>
+> 开发者：[Mikus-loli](https://github.com/mikus-loli)
+
+一个现代化、优雅的 Komari 监控主题，支持明暗主题切换、网格/表格双视图、WebSocket 实时监控和响应式设计。
+
+### 特性
+
+- 🎨 **双主题支持** - 浅色/深色主题无缝切换，支持跟随系统
+- 📊 **双视图模式** - 网格视图和表格视图自由切换
+- 🌐 **多语言支持** - 内置中英文切换
+- 📡 **WebSocket 实时监控** - 实时数据更新
+- 📱 **响应式设计** - 完美适配各种设备
+- 🏳️ **国旗图标** - 支持全球国家和地区旗帜显示
+
+### 截图
+
+![Mikus Theme Preview](https://image.mikus.ink/uploads/HayasakaAi/2026/07/05/d3eab55445a8.webp)
+
 ## Naive
 
 > 项目地址：[Github](https://github.com/lyimoexiao/komari-theme-naive)
