@@ -42,19 +42,3 @@ sudo nginx -s reload
 Starting with Komari `1.0.8`, the built-in theme can fall back to POST requests for most features when WebSocket is unavailable. The terminal still requires WebSocket. Some third-party themes may also require WebSocket.
 
 If WebSocket fails, check the proxy config and the WebSocket Origin settings in the Komari admin dashboard.
-
-## Nezha-compatible gRPC Proxy Example
-
-```nginx
-location ^~ /proto.NezhaService/ {
-    grpc_set_header Host $host;
-    grpc_read_timeout 600s;
-    grpc_send_timeout 600s;
-    grpc_socket_keepalive on;
-    client_max_body_size 10m;
-    grpc_buffer_size 4m;
-    grpc_pass grpc://127.0.0.1:5555;
-}
-```
-
-If you use Cloudflare, enable gRPC proxy support in Cloudflare settings. If you use HTTPS, enable TLS support for the compatible Nezha endpoint.
