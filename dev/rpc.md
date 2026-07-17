@@ -150,14 +150,14 @@ Komari 参数传递支持指名和数组两种方式。
 | billing_cycle      | int       | 计费周期（单位：天）                                     |
 | auto_renewal       | bool      | 是否自动续费                                             |
 | currency           | string    | 货币符号（默认 `$`）                                     |
-| expired_at         | LocalTime | 到期时间                                                 |
+| expired_at         | string \| null (UTC RFC3339Nano) | 到期时间；未设置时为 `null`                  |
 | group              | string    | 分组名称                                                 |
 | tags               | string    | 标签（以 `;` 分隔的字符串）                              |
 | hidden             | bool      | 是否隐藏                                                 |
 | traffic_limit      | int64     | 流量阈值（单位：字节，含义由 `traffic_limit_type` 决定） |
 | traffic_limit_type | string    | 流量阈值类型：`sum` / `max` / `min` / `up` / `down`      |
-| created_at         | LocalTime | 创建时间                                                 |
-| updated_at         | LocalTime | 更新时间                                                 |
+| created_at         | string (UTC RFC3339Nano) | 创建时间                                      |
+| updated_at         | string (UTC RFC3339Nano) | 更新时间                                      |
 
 ::: tip 提示
 `Client` 中的单位（如内存、磁盘、流量）均为字节；需要可读格式请自行转换。
@@ -548,7 +548,8 @@ Komari 参数传递支持指名和数组两种方式。
 | --- | --- | --- | --- |
 | metric_key / metric_keys / metrics | string / string[] | 是 | 指标名，三种输入兼容 |
 | entity_id / entity_ids | string / string[] | 否 | 节点 UUID；留空为所有可见节点 |
-| start / start_time、end / end_time、hours | Time | 否 | 时间范围；未给出时最近 4 小时 |
+| start / start_time、end / end_time | string (RFC3339) | 否 | 时间范围；必须带时区 |
+| hours | number | 否 | 未提供起始时间时的窗口，默认 4 小时 |
 | tags | object | 否 | 精确标签筛选 |
 | downsample / server_downsample | bool | 否 | 是否服务端聚合，默认 `true` |
 | fill_empty | bool | 否 | 是否填充空桶 |
@@ -571,7 +572,8 @@ Komari 参数传递支持指名和数组两种方式。
 | --- | --- | --- | --- |
 | uuid / entity_id / entity_ids | string / string[] | 否 | 节点筛选；留空为所有可见节点 |
 | task_id / task_ids | string\|number / array | 否 | Ping 任务筛选 |
-| start / start_time、end / end_time、hours | Time | 否 | 时间范围；未给出时最近 4 小时 |
+| start / start_time、end / end_time | string (RFC3339) | 否 | 时间范围；必须带时区 |
+| hours | number | 否 | 未提供起始时间时的窗口，默认 4 小时 |
 | max_points / downsample_points | int | 否 | 聚合点数上限，默认 `500` |
 
 返回：
@@ -1529,7 +1531,14 @@ Komari 参数传递支持指名和数组两种方式。
 
 ## 数据结构
 
-本节补充上述目录中尚未在前文定义的返回对象。时间类型均以 JSON 字符串返回，通常为 RFC3339。
+本节补充上述目录中尚未在前文定义的返回对象。
+
+所有绝对时间均使用带时区的 RFC3339 字符串，服务端以 Go `time.Time` 接收和返回；UTC
+时间可能包含纳秒，例如 `2026-07-17T01:30:00.123456789Z`。请求必须包含 `Z` 或显式
+偏移，服务端不接受无时区时间字符串，也不猜测 Unix 时间单位。
+
+日报、周报、月报、续费日期和 cron 墙钟时间按服务器操作系统时区计算。Komari 不提供
+独立于操作系统的应用时区配置。
 
 ### MetricQueryParams 与 MetricQueryResp
 
@@ -1538,8 +1547,8 @@ Komari 参数传递支持指名和数组两种方式。
 | metric_key | string | 与 `metric_keys` / `metrics` 三选一 | 单个指标名 |
 | metric_keys / metrics | string[] | 否 | 指标名列表；两者是兼容别名 |
 | entity_id / entity_ids | string / string[] | 否 | 节点 UUID；留空查询全部可见节点 |
-| start / start_time | RFC3339 或 Unix 时间 | 否 | 起始时间；两个字段互为别名 |
-| end / end_time | RFC3339 或 Unix 时间 | 否 | 结束时间；默认当前时间 |
+| start / start_time | string (RFC3339) | 否 | 起始时间；必须带时区，两个字段互为别名 |
+| end / end_time | string (RFC3339) | 否 | 结束时间；必须带时区，默认当前时间 |
 | hours | number | 否 | 未提供 `start` 时的窗口，默认 `4` |
 | tags | object | 否 | 精确标签筛选 |
 | downsample / server_downsample | boolean | 否 | 是否由服务端聚合，默认 `true` |
@@ -1594,12 +1603,10 @@ Komari 参数传递支持指名和数组两种方式。
 | entity_ids | string[] | 否 | 多节点筛选 |
 | task_id | string \| number | 否 | 单任务筛选 |
 | task_ids | (string \| number)[] | 否 | 多任务筛选 |
-| start / start_time | Time | 否 | 起始时间，互为兼容字段 |
-| end / end_time | Time | 否 | 结束时间，互为兼容字段 |
+| start / start_time | string (RFC3339) | 否 | 起始时间；必须带时区，互为兼容字段 |
+| end / end_time | string (RFC3339) | 否 | 结束时间；必须带时区，互为兼容字段 |
 | hours | number | 否 | 未提供起始时间时的窗口，默认 `4` |
 | max_points / downsample_points | int | 否 | 聚合点数上限，默认 `500` |
-
-`Time` 可为 RFC3339、`2006-01-02 15:04:05` 或秒/毫秒/微秒/纳秒 Unix 时间。
 
 ### PingMetricStatsResp
 
@@ -1648,7 +1655,7 @@ Komari 参数传递支持指名和数组两种方式。
 | threshold | float32 | 触发阈值 |
 | ratio | float32 | 窗口内达标比例，范围 `(0, 1]` |
 | interval | int | 检测窗口（分钟），范围 `1-240` |
-| last_notified | LocalTime | 最近通知时间 |
+| last_notified | string \| null (UTC RFC3339Nano) | 最近通知时间 |
 
 ### OfflineNotification
 
@@ -1658,7 +1665,7 @@ Komari 参数传递支持指名和数组两种方式。
 | client_info | Client | 节点信息，可能省略 |
 | enable | bool | 是否启用 |
 | grace_period | int | 离线宽限期（秒） |
-| last_notified | LocalTime | 最近通知时间 |
+| last_notified | string \| null (UTC RFC3339Nano) | 最近通知时间 |
 
 ### TrafficReportNotification
 
@@ -1680,8 +1687,8 @@ Komari 参数传递支持指名和数组两种方式。
 | name | string | 名称 |
 | weight | int | 排序权重 |
 | remark | string | 备注 |
-| created_at | LocalTime | 创建时间 |
-| updated_at | LocalTime | 更新时间 |
+| created_at | string (UTC RFC3339Nano) | 创建时间 |
+| updated_at | string (UTC RFC3339Nano) | 更新时间 |
 
 ### Task
 
@@ -1701,8 +1708,8 @@ Komari 参数传递支持指名和数组两种方式。
 | client_info | Client | 节点信息，可能省略 |
 | result | string | 命令输出 |
 | exit_code | int \| null | 退出码；未完成时为 `null` |
-| finished_at | LocalTime \| null | 完成时间；未完成时为 `null` |
-| created_at | LocalTime | 创建时间 |
+| finished_at | string \| null (UTC RFC3339Nano) | 完成时间；未完成时为 `null` |
+| created_at | string (UTC RFC3339Nano) | 创建时间 |
 
 ### TaskWithResults
 
@@ -1724,11 +1731,11 @@ Komari 参数传递支持指名和数组两种方式。
 | user_agent | string | 登录时 User-Agent |
 | ip | string | 登录 IP |
 | login_method | string | 登录方式 |
-| latest_online | LocalTime | 最近在线时间 |
+| latest_online | string (UTC RFC3339Nano) | 最近在线时间 |
 | latest_user_agent | string | 最近 User-Agent |
 | latest_ip | string | 最近 IP |
-| expires | LocalTime | 过期时间 |
-| created_at | LocalTime | 创建时间 |
+| expires | string (UTC RFC3339Nano) | 过期时间 |
+| created_at | string (UTC RFC3339Nano) | 创建时间 |
 
 ### Log
 
@@ -1739,7 +1746,7 @@ Komari 参数传递支持指名和数组两种方式。
 | uuid | string | 操作者 UUID |
 | message | string | 日志内容 |
 | msg_type | string | 日志级别 |
-| time | LocalTime | 记录时间 |
+| time | string (UTC RFC3339Nano) | 记录时间 |
 
 ### MessageSenderProvider / OidcProvider
 
@@ -1783,8 +1790,8 @@ Komari 参数传递支持指名和数组两种方式。
 | unit | string | 单位，可能省略 |
 | retention_days | int | 原始数据保留天数 |
 | metadata | object | `{ [key: string]: string }`，可能省略 |
-| created_at | LocalTime | 创建时间，可能省略 |
-| updated_at | LocalTime | 更新时间，可能省略 |
+| created_at | string (UTC RFC3339Nano) | 创建时间 |
+| updated_at | string (UTC RFC3339Nano) | 更新时间 |
 
 ### MetricMigrationStatus
 
@@ -1797,7 +1804,7 @@ Komari 参数传递支持指名和数组两种方式。
 | total_metrics / metrics_done | int | 指标总数 / 已完成数 |
 | current_metric | string | 当前指标 |
 | migrated_points | int64 | 已迁移采样点数 |
-| start_time / end_time | LocalTime | 开始 / 结束时间 |
+| start_time / end_time | string (UTC RFC3339Nano) | 开始 / 结束时间 |
 | error | string | 失败原因 |
 
 ### DatabaseStatus
@@ -1838,7 +1845,7 @@ Komari 参数传递支持指名和数组两种方式。
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | client | string | 节点 UUID |
-| time | LocalTime | 采集时间 |
+| time | string (UTC RFC3339Nano) | 采集时间 |
 | cpu / gpu | float32 | CPU / GPU 使用率 |
 | ram / ram_total | int64 | 已用 / 总内存（字节） |
 | swap / swap_total | int64 | 已用 / 总交换空间（字节） |
@@ -1855,7 +1862,7 @@ Komari 参数传递支持指名和数组两种方式。
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | client | string | 节点 UUID |
-| time | LocalTime | 采集时间 |
+| time | string (UTC RFC3339Nano) | 采集时间 |
 | device_index | int | GPU 设备索引 |
 | device_name | string | GPU 名称 |
 | mem_total / mem_used | int64 | 总显存 / 已用显存（字节） |
