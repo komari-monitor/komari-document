@@ -1567,7 +1567,7 @@ Komari 参数传递支持指名和数组两种方式。
 | metric_key / entity_id | string | 指标名 / 节点 UUID |
 | type / unit | string | 指标类型 / 单位，可能省略 |
 | retention_days | int | 保留天数，可能省略 |
-| tag / tags | object | 序列标签；两个字段为兼容输出 |
+| tags | object | 序列标签 |
 | downsampled | bool | 是否已聚合 |
 | downsample_algorithm | string | 聚合算法，原始查询时省略 |
 | fill_empty | bool | 是否填充空桶 |
@@ -1583,7 +1583,7 @@ Komari 参数传递支持指名和数组两种方式。
 | time | string | 时间（RFC3339Nano） |
 | value | float64 \| null | 数值；空桶或无效 Ping 值可为 `null` |
 | count | int | 聚合桶内样本数；原始点省略 |
-| tag / tags | object | 指标标签；可能省略 |
+| tags | object | 指标标签；可能省略 |
 | labels | object | 原始点附加标签；聚合点省略 |
 
 ### PingMetricStatsParams 与 PingMetricStatsResp
