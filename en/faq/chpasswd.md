@@ -24,8 +24,8 @@ Flags:
   -p, --password string   New password
 
 Global Flags:
-  -d, --database string   SQLite database file path [env: KOMARI_DB_FILE] (default "./data/komari.db")
-  -t, --db-type string    Database type (sqlite) [env: KOMARI_DB_TYPE] (default "sqlite")
+  -d, --database string   SQLite database file path (default "./data/komari.db")
+  -t, --db-type string    Database type (sqlite) (default "sqlite")
 ```
 
 ## Binary Deployment
