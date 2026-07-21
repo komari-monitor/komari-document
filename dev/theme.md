@@ -262,6 +262,32 @@ theme.zip
 
 > 提醒：若未声明 `configuration`，主题仍完全可用；此特性只是为增强可定制性。
 
+## 主题市场与发布
+
+Komari 内置主题市场默认读取 [komari-monitor/theme-market](https://github.com/komari-monitor/theme-market) 的目录。用户可以在后台的“市场 - 主题市场”中搜索、安装、更新主题，并管理自己的 JSON 市场源。
+
+主题作者应在 GitHub Release 中发布可直接安装的 ZIP 包。该 ZIP 必须在根目录包含 `komari-theme.json`，并与 `dist/` 等静态资源一起打包；不要只发布源码压缩包。
+
+主题市场目录的每个条目使用 Release ZIP 的下载地址和 SHA-256 校验值。`name`、`description`、`author` 既可以是字符串，也可以是多语言对象：
+
+```json
+{
+  "name": {
+    "zh-CN": "示例主题",
+    "en": "Example Theme"
+  },
+  "description": {
+    "zh-CN": "用于演示的 Komari 主题",
+    "en": "A Komari theme for demonstration"
+  },
+  "author": "Example Author"
+}
+```
+
+市场会按当前语言、基础语言和对象首个值依次回退显示。主题包内的 `komari-theme.json` 仍应保留 `short`、`version` 等基础元数据，并与市场目录一致。
+
+要收录或更新主题，请向主题市场仓库提交 Pull Request。目录 CI 会校验 `short` 的大小写不敏感 A-Z 顺序和重复值；自动更新工作流会检查 GitHub 的最新 Release。只有下载包通过根目录 manifest、`short`、`version` 与 SHA-256 校验后，自动化才会创建更新 Pull Request。
+
 ## 主页面模板
 
 ### index.html 要求

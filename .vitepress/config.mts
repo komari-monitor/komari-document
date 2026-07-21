@@ -102,7 +102,6 @@ const zhSidebar = [
     text: "社区项目",
     items: [
       { text: "Agent", link: "/community/agent" },
-      { text: "主题", link: "/community/theme" },
       { text: "其他", link: "/community/other" },
     ],
   },
@@ -168,7 +167,6 @@ const enSidebar = [
     text: "Community Projects",
     items: [
       { text: "Agents", link: "/en/community/agent" },
-      { text: "Themes", link: "/en/community/theme" },
       { text: "Other Projects", link: "/en/community/other" },
     ],
   },

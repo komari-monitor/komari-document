@@ -30,6 +30,24 @@ Supported configuration modes include:
 
 Theme pages can use public Komari APIs to read site settings, node status, and theme settings. See [API](/en/dev/api) for entry points.
 
+## Theme Market and Releases
+
+Komari's built-in theme market uses the catalog in [komari-monitor/theme-market](https://github.com/komari-monitor/theme-market) by default. Administrators can search, install, update, and add JSON catalog sources from **Market - Theme Market**.
+
+Publish an installable ZIP in a GitHub Release. The ZIP must contain `komari-theme.json` at its root together with the built static assets; source archives are not installable theme packages.
+
+Catalog fields `name`, `description`, and `author` accept either a string or an i18n object:
+
+```json
+{
+  "name": { "zh-CN": "示例主题", "en": "Example Theme" },
+  "description": { "zh-CN": "用于演示", "en": "For demonstration" },
+  "author": "Example Author"
+}
+```
+
+The market resolves the current locale, then its base language, then the first available value. Submit catalog additions through pull requests. CI enforces case-insensitive A-Z ordering and unique `short` values; the scheduled release monitor opens a pull request only after verifying the package manifest and SHA-256.
+
 ## Important Notes
 
 - The main page should provide an `index.html`.
@@ -37,4 +55,4 @@ Theme pages can use public Komari APIs to read site settings, node status, and t
 - Treat raw HTML configuration pages as trusted code only.
 - Avoid hard-coding language strings when the theme needs internationalization.
 
-The Chinese reference is more complete and includes schema examples: [Theme development](/dev/theme).
+The Chinese reference includes the complete package and configuration schema: [Theme development](/dev/theme).
