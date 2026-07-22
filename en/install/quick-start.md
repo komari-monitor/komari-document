@@ -24,10 +24,9 @@ docker run -d \
   --name komari \
   --restart unless-stopped \
   ghcr.io/komari-monitor/komari:latest
-docker logs komari
 ```
 
-Open `http://<your-server-ip>:25774` in your browser. On first start, Komari prints the default admin account in the logs.
+Open `http://<your-server-ip>:25774` in your browser. On first access, use the installation guide to create the administrator account and site settings.
 
 ## Next Steps
 

@@ -13,12 +13,12 @@ Komari can be deployed from 1Panel when an app template is available in your 1Pa
 1. Open the 1Panel dashboard.
 2. Go to the app store or installed apps area.
 3. Search for `Komari`.
-4. Configure the port, data directory, and optional environment variables.
+4. Configure the port and data directory.
 5. Deploy the app and wait until the container becomes healthy.
 
 ## First Login
 
-After deployment, open the configured address in your browser. If you did not set `ADMIN_USERNAME` and `ADMIN_PASSWORD`, inspect the application logs to find the generated default account.
+After deployment, open the configured address in your browser. On first access, use the installation guide to create the administrator account and site settings.
 
 ## Notes
 

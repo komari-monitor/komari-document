@@ -12,10 +12,7 @@ docker run -d \
   --name komari \
   --restart unless-stopped \
   ghcr.io/komari-monitor/komari:latest
-docker logs komari
 ```
-
-You may set the initial admin account with `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 
 :::tip
 If no external database options are provided, Komari uses SQLite by default. Run the container with `--help` to inspect supported startup flags.
@@ -56,28 +53,14 @@ This command:
 - Mounts `./data` into `/app/data`.
 - Restarts the container automatically unless it was stopped manually.
 
-## Find the Initial Login
-
-```bash
-docker logs komari
-```
-
-Look for a line similar to:
-
-```text
-Default admin account created. Username: admin , Password: 2ioEnIPwn17a
-```
-
-Use that username and password for the first login.
-
-## Open the Dashboard
+## Open the Dashboard and Complete Setup
 
 Open one of these URLs:
 
 - Local machine: `http://localhost:25774`
 - Remote server: `http://<your-server-ip>:25774`
 
-If the page does not open, check that the container is running and that your firewall allows access to port `25774`.
+On first access, the installation guide creates the administrator account and site settings. If the page does not open, check that the container is running and that your firewall allows access to port `25774`.
 
 ## Docker Compose
 
@@ -92,10 +75,6 @@ services:
       - "25774:25774"
     volumes:
       - ./data:/app/data
-    environment:
-      # Optional initial admin account:
-      # ADMIN_USERNAME: admin
-      # ADMIN_PASSWORD: yourpassword
     restart: unless-stopped
 ```
 
@@ -103,7 +82,6 @@ Start it:
 
 ```bash
 docker compose up -d
-docker compose logs komari
 ```
 
 Older installations may use `docker-compose` instead of `docker compose`.

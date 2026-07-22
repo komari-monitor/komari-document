@@ -35,15 +35,11 @@ Komari 目前已正式上架 1Panel 官方应用商店，您可以直接通过 1
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | 端口 | 25774 | 外部访问端口，可自定义 |
-| 管理员账号 | admin | 后台登录用户名 |
-| 管理员密码 | password+随机字符 | **请务必修改**，初始密码可在容器日志中查看 |
 
 ![安装配置界面](/assets/xhcuyxfg.jpg)
 
 > **⚠️ 重要提示**：
-> - 默认后台账号为 `admin`，密码为 `password` 加上随机字符（如 `password_jWZ62s`）
-> - 如果安装时未记住密码，可通过容器日志查看，搜索关键词 `Default admin account created`
-> - 示例日志：`[INFO] Default admin account created. Username: admin , Password: password_jWZ62s`
+> - 首次访问 Komari 会进入安装向导，请在其中创建管理员账号。
 
 ### 4. 等待安装完成
 
@@ -62,7 +58,7 @@ Komari 目前已正式上架 1Panel 官方应用商店，您可以直接通过 1
 
 ![Komari 登录界面](/assets/gdujcjv.jpg)
 
-输入安装时设置的管理员账号和密码即可登录。
+首次访问会进入安装向导，完成管理员账号和站点设置后即可登录。
 
 ---
 
@@ -77,9 +73,6 @@ Komari 目前已正式上架 1Panel 官方应用商店，您可以直接通过 1
 ---
 
 ## 常见问题
-
-### Q: 忘记管理员密码怎么办？
-A: 进入 1Panel 的「容器」管理页面，找到 Komari 容器，查看日志搜索 `Default admin account created` 即可看到初始账号密码。
 
 ### Q: 如何修改已部署的端口或密码？
 A: 在 1Panel 的「应用商店」-「已安装」中找到 Komari，点击「参数」进行修改，修改后重启应用即可。

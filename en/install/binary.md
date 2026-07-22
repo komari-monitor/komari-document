@@ -40,15 +40,9 @@ chmod +x komari
 
 Komari creates a `data` directory in the working directory. Do not delete it unless you intentionally want to remove local data.
 
-## Find the Initial Login
+## Complete Setup
 
-On first start, Komari prints the default admin account in the terminal:
-
-```text
-Default admin account created. Username: admin , Password: 2ioEnIPwn17a
-```
-
-Open `http://localhost:25774` or `http://<your-server-ip>:25774` and sign in.
+Open `http://localhost:25774` or `http://<your-server-ip>:25774`. On first access, use the installation guide to create the administrator account and site settings.
 
 ## Run as a Linux Service
 
