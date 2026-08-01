@@ -1,0 +1,209 @@
+# 插件开发指南
+
+Komari 支持通过 **JavaScript 插件** 扩展服务端能力。插件是一个 ZIP 包，包含清单文件
+（`komari-plugin.json`）和入口脚本（默认 `script.js`）。插件在服务端进程中运行于独立的
+goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/响应、调用系统 RPC、
+注册自己的 RPC 方法、声明配置项并注入管理页面。
+
+::: warning 安全提示
+插件以**管理员权限**运行，且可能申请访问文件系统、执行子进程、监听端口等敏感能力。
+只安装你信任的插件；安装第三方插件前请仔细阅读其声明的权限。
+:::
+
+## 插件能做什么
+
+| 能力 | API | 需要的权限 | 说明 |
+| --- | --- | --- | --- |
+| 注册 RPC 方法 | `server.registerRPC` | 始终授予 | 注册 `plugin:xxx` 命名的方法，供前端或其他插件调用 |
+| 调用系统 RPC | `server.call` | `allowSystemRPC` | 以管理员身份调用任意已注册 RPC 方法 |
+| 注册 HTTP 路由 | `server.route` | `allowRoutes` | 在服务端引擎上注册 `METHOD /path`，支持流式响应 |
+| 拦截 HTTP 请求/响应 | `server.hook` | `allowHooks` | 修改进入和离开服务端的所有 HTTP 请求/响应 |
+| 读取插件配置 | `server.getConfig` | 始终授予 | 读取保存的配置（与清单默认值合并） |
+| 声明配置项 | manifest `configuration` | 无需权限 | 管理界面自动生成配置表单 |
+| 注入管理页面 | manifest `pages` | 无需权限 | 在管理界面侧边栏显示 iframe / redirect 页面 |
+| 文件访问 | `fs` / `require` | 插件目录内始终授予 | 沙箱限定在插件目录；越界需 `allowAllFileAccess` |
+| Node 兼容模块 | `node` 模块 | `node` | events/fs/path/os/process/net/http/crypto 等 |
+| 子进程 | `child_process` | `allowExec` | 执行外部命令 |
+| 端口监听 | `net`/`http` Server | `allowListen` | 绑定本地端口（默认 `127.0.0.1`） |
+
+## 快速开始
+
+### 1. 创建插件目录
+
+```
+hello/
+├── komari-plugin.json
+└── script.js
+```
+
+### 2. 编写清单 `komari-plugin.json`
+
+```json
+{
+  "name": "Hello World",
+  "short": "hello",
+  "description": "一个示例插件",
+  "author": "Your Name",
+  "version": "1.0.0",
+  "komari": ">=1.0.0",
+  "entry": "script.js",
+  "permissions": {
+    "node": true,
+    "allowSystemRPC": true,
+    "allowRoutes": true
+  }
+}
+```
+
+字段说明详见 [清单文件参考](./manifest)。
+
+### 3. 编写入口脚本 `script.js`
+
+```js
+const server = require("server");
+
+function load() {
+  console.log("hello plugin loaded");
+
+  // 注册一个 HTTP 路由：GET /hello
+  server.route("GET", "/hello", async (req, res) => {
+    const nodes = await server.call("common:getNodes");
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({
+      greeting: "Hello, Komari!",
+      nodeCount: Object.keys(nodes).length
+    }));
+  });
+}
+
+function unload() {
+  console.log("hello plugin unloaded");
+}
+```
+
+- 顶层脚本在插件加载时立即执行，但推荐把逻辑放在全局 `load()` 函数中。
+- `load()` 在每次启用/启动时调用；`unload()` 在禁用、卸载或服务端关闭时调用。
+
+### 4. 打包并安装
+
+将 `komari-plugin.json` 和 `script.js` 直接打包到 ZIP 的**根目录**（不要套一层文件夹），
+然后在管理界面「插件」页面点击上传，或在管理后台执行：
+
+```powershell
+curl -X POST -H "Cookie: session_token=<你的会话>" --data-binary "@hello.zip" http://localhost:25774/api/admin/plugin/install
+```
+
+### 5. 启用插件
+
+安装后插件默认处于**禁用**状态，需要手动启用。
+
+由于 `hello` 声明了 `allowSystemRPC` 和 `allowRoutes`，启用时会触发**权限批准**流程：
+管理员需要在弹窗中确认权限后才能启用（见下文「权限与批准」）。
+
+启用成功后访问 `GET /hello` 即可看到插件返回的 JSON。
+
+::: tip 安装限制
+ZIP 最多 10,000 个文件、单文件 ≤ 128 MiB、解压总量 ≤ 512 MiB、清单文件 ≤ 1 MiB。
+任何路径穿越（`../`、绝对路径）条目都会导致整个包被拒绝。
+:::
+
+## 生命周期
+
+### 加载 `load()`
+
+1. 服务端读取并校验 `komari-plugin.json`，检查 `komari` 版本约束。
+2. 创建独立 JS 运行时（沙箱根目录为 `data/plugin/<short>`），**立即执行**入口脚本。
+3. 如果脚本定义了全局 `load()` 函数，则调用它。
+4. 顶层脚本抛错或 `load()` 抛错 → 插件被**自动禁用**，错误写入 `last_error`。
+
+### 卸载 `unload()`
+
+禁用、删除插件或服务端关闭时触发：
+
+1. 先从实例表移除插件（此时 `server.call` 会以「not loaded」拒绝）。
+2. 调用全局 `unload()`（若定义；错误仅记录，不阻塞）。
+3. 注销该插件注册的 RPC 方法，清除路由处理器和钩子，关闭运行时。
+
+::: warning 路由槽位
+插件注册的 gin 路由槽位在卸载后**仍然保留**：此时访问该路由返回 **404**，插件重新加载后
+自动恢复。重新安装（覆盖安装）也会先卸载再恢复其持久化的启用状态。
+:::
+
+### 启动恢复
+
+服务端启动时（`LoadAll`）自动加载所有**已启用且已批准**的插件；加载失败的插件会被
+自动禁用并记录 `last_error`（不会阻止服务端启动）。
+
+## 权限与批准
+
+### 权限模型
+
+- **始终授予**（无需声明，不触发批准）：`server.registerRPC`、`server.getConfig`、
+  插件目录内的文件访问。
+- **声明即授予**：`permissions.node`（Node 兼容模块）、`maxHTTPBodyBytes`、
+  `maxChildOutputBytes`、`timeout` —— 运行时设置，不触发批准。
+- **需管理员批准**（6 个敏感能力，任一为 `true` 即触发批准流程）：
+  `allowSystemRPC`、`allowRoutes`、`allowHooks`、`allowExec`、`allowListen`、
+  `allowAllFileAccess`。
+
+### 批准流程
+
+`admin:setPluginEnabled` 启用插件时，服务端会把声明的能力集合与上次批准时保存的
+哈希对比：
+
+- 一致 → 直接启用。
+- 不一致且插件尚未批准 → 返回 `{ requires_approval: true }`；管理界面弹出权限确认
+  对话框，用户确认后携带 `approved: true` 重试。
+- 已批准后修改了敏感能力声明 → 同样需要重新批准（`node`/超时/大小上限等运行时设置
+  的变更**不会**重新触发批准）。
+
+::: tip 能力哈希
+批准哈希只包含 6 个敏感能力字段（`sha256:` 前缀的 JSON 哈希），不包含 `node`、
+`maxHTTPBodyBytes`、`maxChildOutputBytes`、`timeout`。
+:::
+
+### 权限缺失时的行为
+
+| API | 缺权限时的表现 |
+| --- | --- |
+| `server.route` / `server.hook` | **加载时**抛 `TypeError`，插件加载失败（自动禁用） |
+| `server.call` | 返回的 Promise 被**拒绝**（不阻塞加载） |
+| `require("child_process")` | 抛错（无 `allowExec`） |
+| `net`/`http` Server `listen()` | 抛错（无 `allowListen`） |
+| `fs` / `require` 越界路径 | 被沙箱拒绝（无 `allowAllFileAccess`） |
+
+## 调试
+
+每个插件有一个独立的 64 KiB 环形日志缓冲区，`console.*` 输出和生命周期/钩子错误都会
+写入其中（每次加载时清空）。通过 RPC2 方法 `admin:getPluginLogs`（参数 `{short}`）获取：
+
+```
+POST /api/rpc2
+{"jsonrpc":"2.0","id":1,"method":"admin:getPluginLogs","params":{"short":"hello"}}
+```
+
+::: tip
+插件加载失败时，管理界面「插件」列表会显示 `last_error`。结合插件日志即可定位大多数
+问题（如权限缺失、运行时 API 使用不当）。
+:::
+
+## 安全与限制
+
+- 插件沙箱根目录为 `data/plugin/<short>`：`fs` 和 `require` 被限制在目录内，路径穿越和
+  指向目录外的软链接在操作系统层（`os.Root`）被拒绝。
+- `server.call` 以**管理员身份**执行——插件调用 `admin:*` 方法等于管理员本人操作。
+- JS 运行时**不是**浏览器也不是完整 Node.js：没有 DOM、WebSocket、ESM、`for await...of`、
+  完整 `fs` 等。依赖任何 API 前请先阅读 [JS 运行时参考](./runtime)。
+- 单次执行受 `timeout`（默认 30 秒）限制：脚本初始化、`load()`、路由处理器、钩子、
+  RPC 处理器、fetch 都受此约束。路由处理器超时未 `end()` 会返回 **504**。
+- 没有按插件的 CPU/内存/网络配额；`process.memoryUsage()` 等读取的是整个 Komari 进程。
+
+## 继续阅读
+
+| 文档 | 内容 |
+| --- | --- |
+| [清单文件参考](./manifest) | `komari-plugin.json` 全部字段、权限、配置项、页面 |
+| [server 模块](./server-api) | `server.route` / `server.hook` / `server.call` / `server.registerRPC` / `server.getConfig` 与生命周期钩子 |
+| [JS 运行时](./runtime) | 沙箱内可用的全部 JavaScript API 与兼容性 |
+| [RPC 接口](./rpc) | `server.call` 可调用的全部系统 RPC 方法 |
+| [发布到插件市场](./market) | 将插件发布到官方插件市场 |

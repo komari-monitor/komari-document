@@ -624,20 +624,6 @@ OAuth 登录接口，直接重定向到 `/api/oauth`，用户可通过第三方�
 | `type` | string | 任务类型 |
 | `interval` | number | 执行间隔（秒） |
 
-## MJPEG 实时状态流
-
-### GET `/api/mjpeg_live`
-
-返回 `multipart/x-mixed-replace` MJPEG 图片流，由后端直接渲染节点状态表格。
-
-**查询参数:**
-- `lang` (string，可选) - 语言，支持 `en`、`zh` / `zh-CN`，默认 `en`
-- `tz_offset` (number，可选) - 时区偏移小时数，例如 `8` 表示 `GMT+8`
-
-::: warning 注意
-该接口返回图片流，不使用 `{ status, message, data }` JSON 包装。首次使用且 `./data/font.ttf` 不存在时，后端会尝试下载字体；下载中或失败时会渲染提示图片。
-:::
-
 ## 实时状态
 
 ### WebSocket `/api/clients`
