@@ -21,7 +21,9 @@ plugins.
 | Register RPC methods | `server.registerRPC` | always granted | Register `plugin:xxx` methods callable by the UI or other plugins |
 | Call system RPC | `server.call` | `allowSystemRPC` | Invoke any registered RPC method with admin authority |
 | Register HTTP routes | `server.route` | `allowRoutes` | Register `METHOD /path` on the host engine; supports streaming |
+| Mount a static folder | `server.static` | `allowRoutes` | Serve a folder from the plugin directory on the host engine; optional SPA fallback (`{ spa: true }`) |
 | Intercept HTTP requests/responses | `server.hook` | `allowHooks` | Modify every HTTP request/response entering or leaving the server |
+| Embed CSS/JS into every page | `server.injectHTML` | `allowHTMLInject` | Embed head/body fragments into every HTML response (incl. admin and terminal pages) |
 | Read plugin configuration | `server.getConfig` | always granted | Read saved configuration merged with manifest defaults |
 | Declare configuration items | manifest `configuration` | no permission | Admin UI generates a config form automatically |
 | Inject admin pages | manifest `pages` | no permission | Show iframe / redirect pages in the admin sidebar |
@@ -182,9 +184,9 @@ data/plugin-data/<short>/   # long-term storage (untouched by updates)
   `server.getConfig`, file access inside the plugin directory and `__storageDir__`.
 - **Granted by declaration** (runtime settings, no approval): `permissions.node`,
   `maxHTTPBodyBytes`, `maxChildOutputBytes`, `timeout`.
-- **Require admin approval** (6 sensitive capabilities; any of them being `true`
-  triggers the flow): `allowSystemRPC`, `allowRoutes`, `allowHooks`, `allowExec`,
-  `allowListen`, `allowAllFileAccess`.
+- **Require admin approval** (7 sensitive capabilities; any of them being `true`
+  triggers the flow): `allowSystemRPC`, `allowRoutes`, `allowHooks`,
+  `allowHTMLInject`, `allowExec`, `allowListen`, `allowAllFileAccess`.
 
 ### Approval flow
 
@@ -199,7 +201,7 @@ capability set with the hash saved at the last approval:
   `node`/timeout/size limits do **not** re-trigger approval).
 
 ::: tip Capability hash
-The approval hash covers only the 6 sensitive capabilities (a `sha256:`-prefixed JSON
+The approval hash covers only the 7 sensitive capabilities (a `sha256:`-prefixed JSON
 hash); `node`, `maxHTTPBodyBytes`, `maxChildOutputBytes`, and `timeout` are excluded.
 :::
 
@@ -207,7 +209,7 @@ hash); `node`, `maxHTTPBodyBytes`, `maxChildOutputBytes`, and `timeout` are excl
 
 | API | Behavior without permission |
 | --- | --- |
-| `server.route` / `server.hook` | Throws `TypeError` at **load time**; plugin load fails (auto-disabled) |
+| `server.route` / `server.static` / `server.hook` / `server.injectHTML` | Throws `TypeError` at **load time**; plugin load fails (auto-disabled) |
 | `server.call` | The returned Promise is **rejected** (load not blocked) |
 | `require("child_process")` | Throws (no `allowExec`) |
 | `net`/`http` Server `listen()` | Throws (no `allowListen`) |
@@ -251,7 +253,7 @@ runtime APIs).
 | Document | Contents |
 | --- | --- |
 | [Manifest Reference](./manifest) | All `komari-plugin.json` fields, permissions, configuration, pages |
-| [server Module](./server-api) | `server.route` / `server.hook` / `server.call` / `server.registerRPC` / `server.getConfig` and lifecycle hooks |
+| [server Module](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.getConfig` and lifecycle hooks |
 | [JS Runtime](./runtime) | Every JavaScript API available in the sandbox and its compatibility |
 | [RPC Methods](./rpc) | All system RPC methods callable via `server.call` |
 | [Publishing to the Plugin Market](./market) | Publish your plugin to the official plugin market |

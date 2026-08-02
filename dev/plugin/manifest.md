@@ -52,6 +52,7 @@
 | `allowSystemRPC` | boolean | `false` | 允许 `server.call` 以管理员身份调用任意系统 RPC | **是** |
 | `allowRoutes` | boolean | `false` | 允许 `server.route` 在宿主引擎上注册 HTTP 路由 | **是** |
 | `allowHooks` | boolean | `false` | 允许 `server.hook` 修改 HTTP 请求/响应 | **是** |
+| `allowHTMLInject` | boolean | `false` | 允许 `server.injectHTML` 向每个 HTML 页面嵌入 CSS/JS | **是** |
 | `allowExec` | boolean | `false` | 允许 `child_process` 执行子进程 | **是** |
 | `allowListen` | boolean | `false` | 允许 `net`/`http` Server 监听本地端口 | **是** |
 | `allowAllFileAccess` | boolean | `false` | 允许访问插件目录之外的文件 | **是** |
@@ -59,21 +60,10 @@
 | `maxChildOutputBytes` | int | 1 MiB | 子进程 stdout/stderr 输出上限 | 否 |
 | `timeout` | int | 30 | 单次执行超时（秒） | 否 |
 
-::: tip 始终授予的能力
-`server.registerRPC`、`server.getConfig` 以及**插件目录内**的文件读写**始终授予**，
-无需在清单中声明，也不会触发批准。
-:::
-
-::: warning 批准机制
-任一 `allowSystemRPC` / `allowRoutes` / `allowHooks` / `allowExec` / `allowListen` /
-`allowAllFileAccess` 为 `true` 时，启用插件需要管理员批准。批准哈希只包含这 6 个字段；
-后续修改 `node`、超时或大小上限**不会**重新触发批准，但修改敏感能力会。
-:::
-
 ## 配置项 `configuration`
 
 与主题配置同构，支持 `type: "managed"` 的声明式配置：管理界面自动生成表单，
-插件通过 `server.getConfig()` 读取（保存值会与清单默认值合并）。
+插件通过 `server.getConfig()` 读取。
 
 ```json
 {

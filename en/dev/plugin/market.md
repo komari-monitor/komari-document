@@ -9,6 +9,28 @@ The plugin market is built into the server; the default source is the official K
 catalog. The server supports multiple configurable market sources (REST endpoints:
 see [RPC Methods - Plugin management](./rpc#plugin-management-methods-in-detail)).
 
+## Managing market sources
+
+On the **Market - Plugin Market** page in the admin panel you can manage JSON catalog
+sources, exactly like the theme market:
+
+- **Add a source**: enter a source name and a catalog URL (for example
+  `https://raw.githubusercontent.com/owner/repo/main/v1.json`); it is enabled by default.
+- **Edit a source**: change its name, URL, or enabled state.
+- **Enable / disable**: disabled sources are skipped when loading catalogs but their
+  configuration is kept.
+- **Delete a source**: the source is removed; the official source can be re-added later
+  with the same URL.
+
+Source URLs must be HTTP(S) and must not contain userinfo (`user:pass@`); the server
+rejects download hosts pointing to private or local IPs. Catalogs are fetched per source
+concurrently and cached on the server for 10 minutes; the refresh button (or
+`?refresh=true`) forces a re-fetch. A failing source shows an error at the top of the
+page without affecting the other sources.
+
+Each source record has the fields `id`, `name`, `url`, `enabled` and is stored in the
+server configuration key `plugin_market_sources`.
+
 ## Catalog entry (v1.json)
 
 Each installable plugin contains these fields:
