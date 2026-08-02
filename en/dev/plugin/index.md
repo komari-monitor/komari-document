@@ -33,7 +33,112 @@ plugins.
 | Child processes | `child_process` | `allowExec` | Execute external commands |
 | Port listening | `net`/`http` Server | `allowListen` | Bind local ports (default `127.0.0.1`) |
 
-## Quick Start
+## Quick Start with the SDK
+
+The recommended workflow uses the published SDK packages and `create-komari-plugin`.
+It provides TypeScript types, VS Code completion, manifest hover documentation, a
+local build, and a watch mode that uploads and reloads the plugin automatically.
+
+### Prerequisites
+
+- Node.js 20 or later
+- A reachable Komari development server
+- An API key with permission to install and manage plugins
+- VS Code with the generated project opened as the workspace root
+
+Keep the development server and API key private. The initializer stores them in
+`komari.local.json`, which is added to `.gitignore` by default.
+
+### Create a project
+
+Run the initializer from the directory where the project should be created:
+
+```sh
+npm create komari-plugin hello
+```
+
+It prompts for the development server URL and API key. For scripted setup, pass
+the values explicitly:
+
+```sh
+npm create komari-plugin hello -- --server http://127.0.0.1:25774 --api-key "$KOMARI_API_KEY" --lang en
+```
+
+Then install dependencies and start development mode:
+
+```sh
+cd hello
+npm install
+npm run typecheck
+npm run dev
+```
+
+`npm run dev` builds the TypeScript source, packages the plugin, uploads it to the
+configured server, enables it, prints the runtime plugin log, and watches the
+source and manifest for changes. A file change automatically repeats that cycle.
+Use `Ctrl+C` to stop watching.
+
+Useful alternatives:
+
+```sh
+# Build, upload, and enable once
+npm run dev -- --once
+
+# Poll runtime logs less frequently
+npm run dev -- --log-interval 1000
+
+# Disable runtime log forwarding
+npm run dev -- --no-logs
+```
+
+The `[dev:log]` lines come from the same per-plugin runtime log buffer shown in
+the Komari admin UI. Build output and `enabled/running` status are local developer
+tool output, not plugin runtime logs.
+
+### Generated project layout
+
+```text
+hello/
+├── src/plugin.ts          # TypeScript plugin source
+├── komari-plugin.json     # Plugin manifest
+├── komari.local.json      # Local server URL and API key; never commit
+├── package.json
+└── tsconfig.json
+```
+
+The generated manifest references the SDK Schema. In VS Code, this enables field
+completion, validation, and English hover descriptions:
+
+```json
+{
+  "$schema": "./node_modules/@komari-monitor/plugin-sdk/schema/komari-plugin.schema.json"
+}
+```
+
+The generated project uses package version `1.4.1`. Package versions and Komari
+server versions are not required to match patch-for-patch; this SDK release tracks
+the Komari `1.4.x` compatibility line. The manifest `komari` field is a server
+version constraint and currently uses supported forms such as `>=1.4.0`.
+
+### SDK example
+
+```ts
+import { definePlugin, jsonResponse, server } from "@komari-monitor/plugin-sdk";
+
+definePlugin({
+  load() {
+    server.route("GET", "/hello", (_req, res) => {
+      jsonResponse(res, { ok: true });
+    });
+  },
+});
+```
+
+The SDK provides typed `server` helpers and a typed RPC catalog. Use `rpc.call()`
+for cataloged methods and `server.call()` for dynamic or plugin-owned methods. See
+[server Module](./server-api) and [RPC Methods](./rpc) for the complete API.
+
+## Manual ZIP Workflow
 
 ### 1. Create the plugin directory
 
