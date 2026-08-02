@@ -29,7 +29,107 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 | 子进程                | `child_process`          | `allowExec`                      | 执行外部命令                                                                                     |
 | 端口监听              | `net`/`http` Server      | `allowListen`                    | 绑定本地端口（默认 `127.0.0.1`）                                                                 |
 
-## 快速开始
+## 使用 SDK 快速开始
+
+推荐使用已发布的 SDK 包和 `create-komari-plugin` 创建项目。它提供 TypeScript
+类型提示、VS Code 补全、manifest 悬停说明、本地构建，以及自动上传和热重载。
+
+### 前置条件
+
+- Node.js 20 或更高版本
+- 可以访问的 Komari 开发服务器
+- 具有安装和管理插件权限的 API Key
+- 使用 VS Code 打开生成的项目目录
+
+开发服务器地址和 API Key 属于敏感信息。创建器会将它们保存到
+`komari.local.json`，并默认加入 `.gitignore`，不要提交该文件。
+
+### 创建项目
+
+在希望创建项目的目录执行：
+
+```sh
+npm create komari-plugin hello
+```
+
+命令会交互式询问开发服务器地址和 API Key。也可以显式传参，适合脚本化创建：
+
+```sh
+npm create komari-plugin hello -- --server http://127.0.0.1:25774 --api-key "$KOMARI_API_KEY" --lang zh-CN
+```
+
+然后安装依赖并启动开发模式：
+
+```sh
+cd hello
+npm install
+npm run typecheck
+npm run dev
+```
+
+`npm run dev` 会编译 TypeScript、打包插件、上传到配置的服务器、启用插件，
+并输出插件运行时日志；同时监听源码和 manifest 的变化。文件变化后会自动重复
+这套流程。使用 `Ctrl+C` 停止监听。
+
+常用选项：
+
+```sh
+# 只执行一次构建、上传和启用
+npm run dev -- --once
+
+# 降低运行时日志轮询频率
+npm run dev -- --log-interval 1000
+
+# 关闭运行时日志转发
+npm run dev -- --no-logs
+```
+
+终端中的 `[dev:log]` 来自 Komari 的插件运行时日志缓冲区，与管理界面显示的
+插件日志相同；构建信息和 `enabled/running` 状态属于本地开发工具输出。
+
+### 生成的项目结构
+
+```text
+hello/
+├── src/plugin.ts          # TypeScript 插件源码
+├── komari-plugin.json     # 插件 manifest
+├── komari.local.json      # 本地服务器地址和 API Key，禁止提交
+├── package.json
+└── tsconfig.json
+```
+
+生成的 manifest 已引用 SDK Schema。在 VS Code 中可以获得字段补全、校验和英文
+悬停说明：
+
+```json
+{
+  "$schema": "./node_modules/@komari-monitor/plugin-sdk/schema/komari-plugin.schema.json"
+}
+```
+
+生成项目使用的 npm 包版本为 `1.4.1`。SDK 包版本与 Komari 服务端版本不要求逐个
+patch 对齐；当前 SDK 发布版本对应 Komari `1.4.x` 兼容线。manifest 的 `komari`
+字段是服务端版本约束，目前使用 `>=1.4.0` 等服务端支持的写法。
+
+### SDK 示例
+
+```ts
+import { definePlugin, jsonResponse, server } from "@komari-monitor/plugin-sdk";
+
+definePlugin({
+  load() {
+    server.route("GET", "/hello", (_req, res) => {
+      jsonResponse(res, { ok: true });
+    });
+  },
+});
+```
+
+SDK 提供带类型的 `server` 辅助 API 和 RPC catalog。已收录的方法使用
+`rpc.call()`，动态方法或插件自定义方法使用 `server.call()`。完整 API 见
+[server 模块](./server-api)和 [RPC 接口](./rpc)。
+
+## 手动 ZIP 工作流
 
 ### 1. 创建插件目录
 
