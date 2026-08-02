@@ -15,10 +15,10 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 | 能力                  | API                      | 需要的权限                       | 说明                                                                                             |
 | --------------------- | ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------ |
 | 注册 RPC 方法         | `server.registerRPC`     | 始终授予                         | 注册 `plugin:xxx` 命名的方法，供前端或其他插件调用                                               |
-| 定时任务              | `server.cron`            | 始终授予                         | 按 cron 表达式在插件事件循环上定时执行 handler                                                    |
+| 定时任务              | `server.cron`            | 始终授予                         | 按 cron 表达式在插件事件循环上定时执行 handler                                                   |
 | 调用系统 RPC          | `server.call`            | `allowSystemRPC`                 | 以管理员身份调用任意已注册 RPC 方法                                                              |
 | 注册 HTTP 路由        | `server.route`           | `allowRoutes`                    | 在服务端引擎上注册 `METHOD /path`，支持流式响应                                                  |
-| 挂载静态文件夹        | `server.static`          | `allowRoutes`                    | 在服务端引擎上挂载插件目录内的静态文件夹，可选 SPA 回退（`{ spa: true }`）                      |
+| 挂载静态文件夹        | `server.static`          | `allowRoutes`                    | 在服务端引擎上挂载插件目录内的静态文件夹，可选 SPA 回退（`{ spa: true }`）                       |
 | 拦截 HTTP 请求/响应   | `server.hook`            | `allowHooks`                     | 修改进入和离开服务端的所有 HTTP 请求/响应                                                        |
 | 向所有页面嵌入 CSS/JS | `server.injectHTML`      | `allowHTMLInject`                | 向每个 HTML 响应嵌入 head/body 片段（含管理页、终端页）                                          |
 | 读取插件配置          | `server.getConfig`       | 始终授予                         | 读取保存的配置（与清单默认值合并）                                                               |
@@ -49,40 +49,12 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 在希望创建项目的目录执行：
 
 ```sh
-npm create komari-plugin hello
-```
-
-命令会交互式询问开发服务器地址和 API Key。也可以显式传参，适合脚本化创建：
-
-```sh
-npm create komari-plugin hello -- --server http://127.0.0.1:25774 --api-key "$KOMARI_API_KEY" --lang zh-CN
-```
-
-然后安装依赖并启动开发模式：
-
-```sh
-cd hello
-npm install
-npm run typecheck
-npm run dev
+npm create komari-plugin
 ```
 
 `npm run dev` 会编译 TypeScript、打包插件、上传到配置的服务器、启用插件，
 并输出插件运行时日志；同时监听源码和 manifest 的变化。文件变化后会自动重复
 这套流程。使用 `Ctrl+C` 停止监听。
-
-常用选项：
-
-```sh
-# 只执行一次构建、上传和启用
-npm run dev -- --once
-
-# 降低运行时日志轮询频率
-npm run dev -- --log-interval 1000
-
-# 关闭运行时日志转发
-npm run dev -- --no-logs
-```
 
 终端中的 `[dev:log]` 来自 Komari 的插件运行时日志缓冲区，与管理界面显示的
 插件日志相同；构建信息和 `enabled/running` 状态属于本地开发工具输出。
@@ -106,28 +78,6 @@ hello/
   "$schema": "./node_modules/@komari-monitor/plugin-sdk/schema/komari-plugin.schema.json"
 }
 ```
-
-生成项目使用的 npm 包版本为 `1.4.1`。SDK 包版本与 Komari 服务端版本不要求逐个
-patch 对齐；当前 SDK 发布版本对应 Komari `1.4.x` 兼容线。manifest 的 `komari`
-字段是服务端版本约束，目前使用 `>=1.4.0` 等服务端支持的写法。
-
-### SDK 示例
-
-```ts
-import { definePlugin, jsonResponse, server } from "@komari-monitor/plugin-sdk";
-
-definePlugin({
-  load() {
-    server.route("GET", "/hello", (_req, res) => {
-      jsonResponse(res, { ok: true });
-    });
-  },
-});
-```
-
-SDK 提供带类型的 `server` 辅助 API 和 RPC catalog。已收录的方法使用
-`rpc.call()`，动态方法或插件自定义方法使用 `server.call()`。完整 API 见
-[server 模块](./server-api)和 [RPC 接口](./rpc)。
 
 ## 手动 ZIP 工作流
 
@@ -259,13 +209,13 @@ data/plugin-data/<short>/   # 长期存储
 
 ### 权限缺失时的行为
 
-| API                                                  | 缺权限时的表现                                     |
-| ---------------------------------------------------- | -------------------------------------------------- |
+| API                                                                    | 缺权限时的表现                                     |
+| ---------------------------------------------------------------------- | -------------------------------------------------- |
 | `server.route` / `server.static` / `server.hook` / `server.injectHTML` | **加载时**抛 `TypeError`，插件加载失败（自动禁用） |
-| `server.call`                                        | 返回的 Promise 被**拒绝**（不阻塞加载）            |
-| `require("child_process")`                           | 抛错（无 `allowExec`）                             |
-| `net`/`http` Server `listen()`                       | 抛错（无 `allowListen`）                           |
-| `fs` / `require` 越界路径                            | 被沙箱拒绝（无 `allowAllFileAccess`）              |
+| `server.call`                                                          | 返回的 Promise 被**拒绝**（不阻塞加载）            |
+| `require("child_process")`                                             | 抛错（无 `allowExec`）                             |
+| `net`/`http` Server `listen()`                                         | 抛错（无 `allowListen`）                           |
+| `fs` / `require` 越界路径                                              | 被沙箱拒绝（无 `allowAllFileAccess`）              |
 
 ## 调试
 
@@ -296,10 +246,10 @@ POST /api/rpc2
 
 ## 继续阅读
 
-| 文档                        | 内容                                                                                                                            |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [清单文件参考](./manifest)  | `komari-plugin.json` 全部字段、权限、配置项、页面                                                                               |
+| 文档                        | 内容                                                                                                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [清单文件参考](./manifest)  | `komari-plugin.json` 全部字段、权限、配置项、页面                                                                                                                 |
 | [server 模块](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.cron` / `server.getConfig` 与生命周期钩子 |
-| [JS 运行时](./runtime)      | 沙箱内可用的全部 JavaScript API 与兼容性                                                                                        |
-| [RPC 接口](./rpc)           | `server.call` 可调用的全部系统 RPC 方法                                                                                         |
-| [发布到插件市场](./market)  | 将插件发布到官方插件市场                                                                                                        |
+| [JS 运行时](./runtime)      | 沙箱内可用的全部 JavaScript API 与兼容性                                                                                                                          |
+| [RPC 接口](./rpc)           | `server.call` 可调用的全部系统 RPC 方法                                                                                                                           |
+| [发布到插件市场](./market)  | 将插件发布到官方插件市场                                                                                                                                          |
