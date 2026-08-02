@@ -1102,6 +1102,22 @@ Komari 参数传递支持指名和数组两种方式。
 | --- | --- |
 | `null` | 成功时返回该结构 |
 
+## admin:sendNotification
+
+描述：发送一条通知。`event` 为普通事件对象，可含 `event`、`message`、`emoji`、`time`、`clients` 字段（均可选），未知字段会被忽略；`clients` 只需携带客户端 UUID，服务端自动补全。
+
+参数：
+
+| 参数名 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| event | `object` | 是 | 事件对象 |
+
+返回：
+
+| 返回值类型 | 描述 |
+| --- | --- |
+| `null` | 成功时返回该结构 |
+
 ## admin:getClipboard
 
 描述：获取剪贴板条目。

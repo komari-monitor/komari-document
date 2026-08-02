@@ -56,6 +56,7 @@ documentation of each method, see the [RPC documentation](/en/dev/rpc).
 | `admin:addLoadNotification` / `deleteLoadNotification` / `editLoadNotification` / `getAllLoadNotifications` | Load notifications |
 | `admin:listOfflineNotifications` / `editOfflineNotification` / `enableOfflineNotification` / `disableOfflineNotification` | Offline notifications |
 | `admin:listTrafficReportNotifications` / `editTrafficReportNotifications` / `enableTrafficReportNotifications` / `disableTrafficReportNotifications` | Traffic reports |
+| `admin:sendNotification` | Send a notification (event message; clients/template supported) |
 | `admin:getSessions` / `deleteSession` / `deleteAllSessions` | Login sessions |
 | `admin:getSettings` / `editSettings` | System settings |
 | `admin:getClipboard` / `listClipboard` / `createClipboard` / `updateClipboard` / `deleteClipboard` / `batchDeleteClipboard` | Clipboard |

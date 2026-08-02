@@ -53,6 +53,7 @@
 | `admin:addLoadNotification` / `deleteLoadNotification` / `editLoadNotification` / `getAllLoadNotifications` | 负载通知 |
 | `admin:listOfflineNotifications` / `editOfflineNotification` / `enableOfflineNotification` / `disableOfflineNotification` | 离线通知 |
 | `admin:listTrafficReportNotifications` / `editTrafficReportNotifications` / `enableTrafficReportNotifications` / `disableTrafficReportNotifications` | 流量报告 |
+| `admin:sendNotification` | 发送通知（事件消息，可指定客户端/模板） |
 | `admin:getSessions` / `deleteSession` / `deleteAllSessions` | 登录会话 |
 | `admin:getSettings` / `editSettings` | 系统设置 |
 | `admin:getClipboard` / `listClipboard` / `createClipboard` / `updateClipboard` / `deleteClipboard` / `batchDeleteClipboard` | 剪贴板 |
