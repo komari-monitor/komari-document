@@ -129,7 +129,8 @@ removeAllListeners/listeners/rawListeners/listenerCount/eventNames/...`；
   时间取自 ModTime）；`Dirent` 提供 `name` 与类型判断。
 - 未实现：`watch/watchFile/unwatchFile/opendir/cp/link/statfs/lutimes`、完整 FileHandle、
   `readdir` recursive。
-- **默认沙箱在插件目录内**（路径穿越/软链接越界在系统层拒绝）；相对路径从插件目录解析。
+- **默认沙箱在插件目录和 `__storageDir__` 长期存储目录内**（路径穿越/软链接越界在系统层
+  拒绝）；相对路径从插件目录解析，`__storageDir__` 为绝对路径。
 
 ### path
 

@@ -21,7 +21,7 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 | 读取插件配置 | `server.getConfig` | 始终授予 | 读取保存的配置（与清单默认值合并） |
 | 声明配置项 | manifest `configuration` | 无需权限 | 管理界面自动生成配置表单 |
 | 注入管理页面 | manifest `pages` | 无需权限 | 在管理界面侧边栏显示 iframe / redirect 页面 |
-| 文件访问 | `fs` / `require` | 插件目录内始终授予 | 沙箱限定在插件目录；越界需 `allowAllFileAccess` |
+| 文件访问 | `fs` / `require` | 插件目录与长期存储目录内始终授予 | 沙箱限定在插件目录和 `__storageDir__`（`data/plugin-data/<short>`）；越界需 `allowAllFileAccess` |
 | Node 兼容模块 | `node` 模块 | `node` | events/fs/path/os/process/net/http/crypto 等 |
 | 子进程 | `child_process` | `allowExec` | 执行外部命令 |
 | 端口监听 | `net`/`http` Server | `allowListen` | 绑定本地端口（默认 `127.0.0.1`） |
@@ -112,7 +112,8 @@ ZIP 最多 10,000 个文件、单文件 ≤ 128 MiB、解压总量 ≤ 512 MiB�
 ### 加载 `load()`
 
 1. 服务端读取并校验 `komari-plugin.json`，检查 `komari` 版本约束。
-2. 创建独立 JS 运行时（沙箱根目录为 `data/plugin/<short>`），**立即执行**入口脚本。
+2. 创建独立 JS 运行时（沙箱根目录为 `data/plugin/<short>`，长期存储目录
+   `data/plugin-data/<short>` 以 `__storageDir__` 注入），**立即执行**入口脚本。
 3. 如果脚本定义了全局 `load()` 函数，则调用它。
 4. 顶层脚本抛错或 `load()` 抛错 → 插件被**自动禁用**，错误写入 `last_error`。
 
@@ -134,12 +135,32 @@ ZIP 最多 10,000 个文件、单文件 ≤ 128 MiB、解压总量 ≤ 512 MiB�
 服务端启动时（`LoadAll`）自动加载所有**已启用且已批准**的插件；加载失败的插件会被
 自动禁用并记录 `last_error`（不会阻止服务端启动）。
 
+## 长期存储目录 `__storageDir__`
+
+每个插件在启用时会获得独立的长期存储目录：
+
+```text
+data/plugin-data/<short>/   # 长期存储（更新不会触碰）
+```
+
+- 与代码目录 `data/plugin/<short>`（ZIP 解压内容）完全分离，`fs` 沙箱同时覆盖两个目录。
+- 脚本通过全局 `__storageDir__` 访问它（`NodeJS` 模式注入，绝对路径）：
+  ```js
+  const fs = require("fs");
+  const path = require("path");
+  fs.writeFileSync(path.join(__storageDir__, "cache.json"), "{}");
+  ```
+- **更新（覆盖安装）只替换代码目录，长期存储原样保留**，适合存放缓存、用户数据等。
+- **显式删除插件时两目录一起移除**（删除即彻底清除）。
+- 沙箱规则与插件目录一致：无法越出 `__storageDir__`，也不能访问其他插件的存储目录；
+  跨目录的 `fs.renameSync`（插件目录 ↔ 存储目录）会被拒绝。
+
 ## 权限与批准
 
 ### 权限模型
 
 - **始终授予**（无需声明，不触发批准）：`server.registerRPC`、`server.getConfig`、
-  插件目录内的文件访问。
+  插件目录内及 `__storageDir__` 内的文件访问。
 - **声明即授予**：`permissions.node`（Node 兼容模块）、`maxHTTPBodyBytes`、
   `maxChildOutputBytes`、`timeout` —— 运行时设置，不触发批准。
 - **需管理员批准**（6 个敏感能力，任一为 `true` 即触发批准流程）：
@@ -189,8 +210,9 @@ POST /api/rpc2
 
 ## 安全与限制
 
-- 插件沙箱根目录为 `data/plugin/<short>`：`fs` 和 `require` 被限制在目录内，路径穿越和
-  指向目录外的软链接在操作系统层（`os.Root`）被拒绝。
+- 插件沙箱根目录为 `data/plugin/<short>` 与 `data/plugin-data/<short>`（`__storageDir__`）：
+  `fs` 和 `require` 被限制在这两个目录内，路径穿越和指向目录外的软链接在操作系统层
+  （`os.Root`）被拒绝。
 - `server.call` 以**管理员身份**执行——插件调用 `admin:*` 方法等于管理员本人操作。
 - JS 运行时**不是**浏览器也不是完整 Node.js：没有 DOM、WebSocket、ESM、`for await...of`、
   完整 `fs` 等。依赖任何 API 前请先阅读 [JS 运行时参考](./runtime)。

@@ -24,7 +24,6 @@ Komari 官方插件市场是一个开源目录仓库（`plugin-market`），存�
   "version": "1.0.0",
   "author": "Your Name",
   "url": "https://github.com/your-name/komari-example",
-  "preview": "https://example.com/preview.png",
   "download": "https://example.com/plugin.zip",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "komari": ">=1.0.0"
@@ -39,7 +38,6 @@ Komari 官方插件市场是一个开源目录仓库（`plugin-market`），存�
 | `version` | 是 | 插件版本号 |
 | `author` | 是 | string 或 i18n 对象 |
 | `url` | 否 | 项目主页，HTTP(S) URL，不能含用户信息（`user:pass@`） |
-| `preview` | 否 | 预览图，绝对 HTTP(S) URL，图片格式为 PNG/JPEG/GIF/WebP/AVIF |
 | `download` | 与 `sha256` 成对 | 插件 ZIP 下载地址，绝对 HTTP(S) URL；仅作来源展示的条目可省略 |
 | `sha256` | 与 `download` 成对 | 该 ZIP 的小写 SHA-256（64 位十六进制） |
 | `komari` | 否 | 服务端版本约束，**必须与 `komari-plugin.json` 完全一致** |
@@ -64,7 +62,6 @@ Komari 官方插件市场是一个开源目录仓库（`plugin-market`），存�
 只需提供：
 
 - GitHub 仓库地址（必须公开）
-- 预览图链接
 - 确认最新 Release 中附带插件 ZIP 包
 
 Action 会读取仓库的最新 Release，从 Release 资产中找到唯一的合法插件 ZIP（包内必须
@@ -76,7 +73,6 @@ Action 会读取仓库的最新 Release，从 Release 资产中找到唯一的�
 
 - 项目地址（不能是 GitHub 托管地址）
 - 插件包下载地址（不能是 GitHub 托管地址）
-- 预览图链接
 - 插件名称、唯一短名、版本、描述、作者
 - 确认代码无恶意行为、包不会自动更新
 
@@ -89,7 +85,6 @@ Action 会读取仓库的最新 Release，从 Release 资产中找到唯一的�
 | 包安全 | 无绝对路径/穿越/反斜杠/NUL 路径、无软链接；≤ 10,000 文件、单文件 ≤ 128 MiB、解压 ≤ 512 MiB |
 | 清单 | 根目录恰好一个 `komari-plugin.json`（≤ 1 MiB）；`name/short/version/author` 合法 |
 | 一致性 | 外部托管表单提交的 `short`、`version` 必须与包内清单一致 |
-| 预览图 | PNG/JPEG/GIF/WebP/AVIF；GitHub `blob` 链接自动规范化为 `raw` 链接 |
 | 目录 | 计算 SHA-256、按 `short` 不区分大小写排序、更新 `updated_at` |
 
 提交失败时 Action 会在 Issue 中留言原因并自动关闭；瞬时失败（403/408/425/429/5xx、

@@ -27,7 +27,6 @@ Each installable plugin contains these fields:
   "version": "1.0.0",
   "author": "Your Name",
   "url": "https://github.com/your-name/komari-example",
-  "preview": "https://example.com/preview.png",
   "download": "https://example.com/plugin.zip",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
   "komari": ">=1.0.0"
@@ -42,7 +41,6 @@ Each installable plugin contains these fields:
 | `version` | Yes | plugin version |
 | `author` | Yes | string or i18n object |
 | `url` | No | project homepage, HTTP(S) URL without userinfo (`user:pass@`) |
-| `preview` | No | preview image, absolute HTTP(S) URL; PNG/JPEG/GIF/WebP/AVIF |
 | `download` | paired with `sha256` | plugin ZIP download URL, absolute HTTP(S); may be omitted together with `sha256` for source-only entries |
 | `sha256` | paired with `download` | lowercase SHA-256 of that exact ZIP (64 hex chars) |
 | `komari` | No | server version constraint, **must exactly match `komari-plugin.json`** |
@@ -70,7 +68,6 @@ the Action reads them by name.
 Only required:
 
 - GitHub repository URL (must be public)
-- Preview image URL
 - Confirmation that the latest Release ships a plugin package
 
 The Action reads the repository's latest Release and finds the single valid plugin ZIP
@@ -82,7 +79,6 @@ Provide:
 
 - Project URL (must not be GitHub-hosted)
 - Package download URL (must not be GitHub-hosted)
-- Preview image URL
 - Plugin name, unique short name, version, description, and author
 - Confirmation that the code is not malicious and the package has no auto-updates
 
@@ -95,7 +91,6 @@ Provide:
 | Package safety | no absolute/traversal/backslash/NUL paths, no symlinks; ≤ 10,000 files, ≤ 128 MiB per file, ≤ 512 MiB extracted |
 | Manifest | exactly one root `komari-plugin.json` (≤ 1 MiB); valid `name/short/version/author` |
 | Consistency | `short` and `version` from the external-hosted form must match the in-package manifest |
-| Preview | PNG/JPEG/GIF/WebP/AVIF; GitHub `blob` links normalized to `raw` links |
 | Catalog | SHA-256 computed, sorted case-insensitively by `short`, `updated_at` updated |
 
 On failure the Action comments the reason on the issue and closes it; transient

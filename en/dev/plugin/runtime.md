@@ -140,8 +140,9 @@ semantics.
   `blksize=4096`, times from ModTime); `Dirent` provides `name` and type checks.
 - Not implemented: `watch/watchFile/unwatchFile/opendir/cp/link/statfs/lutimes`, full
   FileHandle, `readdir` recursive.
-- **Sandboxed to the plugin directory by default** (traversal/symlink escapes are
-  rejected at the OS level); relative paths resolve from the plugin directory.
+- **Sandboxed to the plugin directory and the `__storageDir__` long-term storage
+  directory by default** (traversal/symlink escapes are rejected at the OS level);
+  relative paths resolve from the plugin directory, `__storageDir__` is absolute.
 
 ### path
 

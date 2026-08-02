@@ -25,7 +25,7 @@ plugins.
 | Read plugin configuration | `server.getConfig` | always granted | Read saved configuration merged with manifest defaults |
 | Declare configuration items | manifest `configuration` | no permission | Admin UI generates a config form automatically |
 | Inject admin pages | manifest `pages` | no permission | Show iframe / redirect pages in the admin sidebar |
-| File access | `fs` / `require` | inside plugin dir: always granted | Sandboxed to the plugin directory; escaping requires `allowAllFileAccess` |
+| File access | `fs` / `require` | inside plugin dir and storage dir: always granted | Sandboxed to the plugin directory and `__storageDir__` (`data/plugin-data/<short>`); escaping requires `allowAllFileAccess` |
 | Node compatibility modules | `node` modules | `node` | events/fs/path/os/process/net/http/crypto, etc. |
 | Child processes | `child_process` | `allowExec` | Execute external commands |
 | Port listening | `net`/`http` Server | `allowListen` | Bind local ports (default `127.0.0.1`) |
@@ -121,8 +121,9 @@ manifest ≤ 1 MiB. Any path-traversal entry (`../`, absolute paths) rejects the
 
 1. The server reads and validates `komari-plugin.json` and checks the `komari` version
    constraint.
-2. A dedicated JS runtime is created (sandbox root: `data/plugin/<short>`), and the
-   entry script is **executed immediately**.
+2. A dedicated JS runtime is created (sandbox root: `data/plugin/<short>`, plus the
+   long-term storage directory `data/plugin-data/<short>` injected as `__storageDir__`),
+   and the entry script is **executed immediately**.
 3. If the script defines a global `load()` function, it is invoked.
 4. A top-level error or a `load()` error → the plugin is **auto-disabled** and the
    error is persisted in `last_error`.
@@ -149,12 +150,36 @@ On server startup (`LoadAll`), every **enabled and approved** plugin is loaded
 automatically; plugins that fail to load are auto-disabled with `last_error` persisted
 (this does not stop the server from starting).
 
+## Long-term storage directory `__storageDir__`
+
+Every plugin gets a dedicated long-term storage directory when enabled:
+
+```text
+data/plugin-data/<short>/   # long-term storage (untouched by updates)
+```
+
+- Fully separated from the code directory `data/plugin/<short>` (the ZIP contents); the
+  `fs` sandbox covers both directories.
+- Scripts access it via the global `__storageDir__` (injected in NodeJS mode, absolute
+  path):
+  ```js
+  const fs = require("fs");
+  const path = require("path");
+  fs.writeFileSync(path.join(__storageDir__, "cache.json"), "{}");
+  ```
+- **Updates (reinstall) replace only the code directory; the long-term storage survives**
+  — suitable for caches, user data, and similar state.
+- **Deleting a plugin removes both directories** (delete means full removal).
+- Same sandbox rules as the plugin directory: nothing escapes `__storageDir__`, other
+  plugins' storage directories are unreachable, and cross-directory `fs.renameSync`
+  (plugin dir ↔ storage dir) is rejected.
+
 ## Permissions & Approval
 
 ### Permission model
 
 - **Always granted** (no declaration needed, no approval): `server.registerRPC`,
-  `server.getConfig`, file access inside the plugin directory.
+  `server.getConfig`, file access inside the plugin directory and `__storageDir__`.
 - **Granted by declaration** (runtime settings, no approval): `permissions.node`,
   `maxHTTPBodyBytes`, `maxChildOutputBytes`, `timeout`.
 - **Require admin approval** (6 sensitive capabilities; any of them being `true`
@@ -207,8 +232,9 @@ runtime APIs).
 
 ## Security & Limitations
 
-- The plugin sandbox root is `data/plugin/<short>`: `fs` and `require` are confined to
-  it, and path traversal / symlink escapes are rejected at the OS level (`os.Root`).
+- The plugin sandbox roots are `data/plugin/<short>` and
+  `data/plugin-data/<short>` (`__storageDir__`): `fs` and `require` are confined to
+  them, and path traversal / symlink escapes are rejected at the OS level (`os.Root`).
 - `server.call` runs with **admin authority** — a plugin calling `admin:*` methods is
   equivalent to the admin doing it themselves.
 - The JS runtime is **not a browser and not full Node.js**: no DOM, WebSocket, ESM,

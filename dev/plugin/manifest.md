@@ -8,7 +8,7 @@
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- |
 | `name` | string \| i18n 对象 | 是 | — | 插件名称。为空字符串或空映射时校验失败 |
-| `short` | string | 是 | — | 插件唯一短名，同时用作 `data/plugin/` 下的目录名。仅允许 `[A-Za-z0-9_-]`，不能是 `default` |
+| `short` | string | 是 | — | 插件唯一短名，同时用作 `data/plugin/` 和 `data/plugin-data/`（长期存储）下的目录名。仅允许 `[A-Za-z0-9_-]`，不能是 `default` |
 | `description` | string \| i18n 对象 | 否 | — | 插件描述 |
 | `author` | string \| i18n 对象 | 否 | — | 作者 |
 | `version` | string | 否 | — | 插件版本号（市场发布时必填） |

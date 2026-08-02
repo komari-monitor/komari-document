@@ -9,7 +9,7 @@ validates this file on install, load, and enable.
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `name` | string \| i18n object | Yes | — | Plugin name. An empty string or empty map fails validation |
-| `short` | string | Yes | — | Unique plugin short name, also used as the directory name under `data/plugin`. Only `[A-Za-z0-9_-]`, must not be `default` |
+| `short` | string | Yes | — | Unique plugin short name, also used as the directory name under `data/plugin` and `data/plugin-data` (long-term storage). Only `[A-Za-z0-9_-]`, must not be `default` |
 | `description` | string \| i18n object | No | — | Plugin description |
 | `author` | string \| i18n object | No | — | Author |
 | `version` | string | No | — | Plugin version (required for market publishing) |
