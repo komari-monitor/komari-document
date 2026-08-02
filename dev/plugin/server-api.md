@@ -11,7 +11,7 @@ const server = require("server");
 | --- | --- | --- |
 | [`server.route(method, path, handler)`](#server-route) | 在宿主引擎注册 HTTP 路由 | `allowRoutes` |
 | [`server.static(path, dir, opts)`](#server-static) | 挂载插件目录内的静态文件夹，可选 SPA 回退 | `allowRoutes` |
-| [`server.hook(kind, fn)`](#server-hook) | 注册请求/响应钩子 | `allowHooks` |
+| [`server.hook(kind, matcher?, fn)`](#server-hook) | 注册请求/响应钩子 | `allowHooks` |
 | [`server.injectHTML(head, body)`](#server-injecthtml) | 向每个 HTML 页面嵌入 CSS/JS | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | 以管理员身份调用系统 RPC | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | 注册插件自己的 RPC 方法 | 始终授予 |
@@ -154,15 +154,16 @@ server.static("/app", "dist", { spa: true }); // SPA 模式
 
 ## server.hook
 
-在宿主的 HTTP 链上注册**请求钩子**或**响应钩子**，影响进入/离开服务端的**所有**
-HTTP 请求（WebSocket 升级请求除外，它们直接穿透）：
+在宿主的 HTTP 链上注册**请求钩子**或**响应钩子**。默认影响进入/离开服务端的**所有**
+HTTP 请求（WebSocket 升级请求除外，它们直接穿透）；传入可选的路径过滤后只影响
+匹配的请求（不匹配的请求完全跳过钩子链，不做 body 缓冲）：
 
 ```js
 server.hook("request", (req) => {
   req.headers["x-hooked"] = "yes";
 });
 
-server.hook("response", (req, res) => {
+server.hook("response", "/api/*", (req, res) => {
   res.statusCode = 201;
   res.body = res.body + "|hooked";
 });
@@ -171,6 +172,7 @@ server.hook("response", (req, res) => {
 | 参数 | 类型 | 说明 |
 | --- | --- | --- |
 | `kind` | `"request"` \| `"response"` | 钩子类型 |
+| `matcher` | string（可选） | 路径过滤：`"/api/foo"`（精确）、`"/api/*"`（子树）、`"POST /api/foo"`（方法 + 路径）；大小写不敏感 |
 | `fn` | function | 请求钩子 `fn(req)`；响应钩子 `fn(req, res)` |
 
 需要 `allowHooks` 权限，否则加载时抛 `TypeError`。
@@ -188,7 +190,8 @@ server.hook("response", (req, res) => {
 }
 ```
 
-- 请求体读取上限 32 MiB（`maxHTTPBodyBytes`）。
+- 请求体读取上限取匹配钩子所属插件声明的 `maxHTTPBodyBytes`（未声明时默认
+  32 MiB）；超过上限的请求返回 `413`。
 - 多个钩子按注册顺序依次执行；钩子抛错 → 客户端收到 `500 plugin request hook failed`，
   剩余钩子不再执行。
 - 钩子执行受 `timeout` 限制，超时同样视为失败。
@@ -205,6 +208,8 @@ server.hook("response", (req, res) => {
 ```
 
 - 响应默认被缓冲（上限 32 MiB）以便钩子改写。
+- **改写 body 后原响应携带的 `Content-Length` 会被移除**，由 Go 重新计算长度
+  （或回退到分块传输），避免客户端截断/挂起。
 - **流式响应（SSE 等，第一次 `Flush()`）或超过 32 MiB 的响应直接穿透**，
   钩子无法再改写（有日志记录）。
 - 钩子错误仅记录日志，不阻断响应。

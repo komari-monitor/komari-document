@@ -12,7 +12,7 @@ const server = require("server");
 | --- | --- | --- |
 | [`server.route(method, path, handler)`](#server-route) | Register an HTTP route on the host engine | `allowRoutes` |
 | [`server.static(path, dir, opts)`](#server-static) | Mount a static folder from the plugin directory, optional SPA fallback | `allowRoutes` |
-| [`server.hook(kind, fn)`](#server-hook) | Register request/response hooks | `allowHooks` |
+| [`server.hook(kind, matcher?, fn)`](#server-hook) | Register request/response hooks | `allowHooks` |
 | [`server.injectHTML(head, body)`](#server-injecthtml) | Embed CSS/JS into every HTML page | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | Call system RPC with admin authority | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | Register a plugin-owned RPC method | Always granted |
@@ -162,16 +162,18 @@ server.static("/app", "dist", { spa: true }); // SPA mode
 
 ## server.hook
 
-Registers **request** or **response** hooks on the host HTTP chain, affecting **all**
-HTTP requests entering/leaving the server (except WebSocket upgrade requests, which
-pass through untouched):
+Registers **request** or **response** hooks on the host HTTP chain. By default they
+affect **all** HTTP requests entering/leaving the server (except WebSocket upgrade
+requests, which pass through untouched); with an optional path filter they only run
+for matching requests (non-matching requests skip the hook chain entirely, including
+body buffering):
 
 ```js
 server.hook("request", (req) => {
   req.headers["x-hooked"] = "yes";
 });
 
-server.hook("response", (req, res) => {
+server.hook("response", "/api/*", (req, res) => {
   res.statusCode = 201;
   res.body = res.body + "|hooked";
 });
@@ -180,6 +182,7 @@ server.hook("response", (req, res) => {
 | Arg | Type | Description |
 | --- | --- | --- |
 | `kind` | `"request"` \| `"response"` | Hook type |
+| `matcher` | string (optional) | Path filter: `"/api/foo"` (exact), `"/api/*"` (subtree), `"POST /api/foo"` (method + path); case-insensitive |
 | `fn` | function | Request hook `fn(req)`; response hook `fn(req, res)` |
 
 Requires `allowHooks`, otherwise a `TypeError` is thrown at load time.
@@ -197,7 +200,8 @@ Requires `allowHooks`, otherwise a `TypeError` is thrown at load time.
 }
 ```
 
-- Request bodies are read up to 32 MiB (`maxHTTPBodyBytes`).
+- Request bodies are read up to the `maxHTTPBodyBytes` declared by the matching
+  hook's plugin (default 32 MiB when undeclared); larger requests return `413`.
 - Hooks run in registration order; a hook error → client receives
   `500 plugin request hook failed` and remaining hooks are skipped.
 - Hook execution is bounded by `timeout`; a timeout is treated as a failure.
@@ -214,6 +218,9 @@ Requires `allowHooks`, otherwise a `TypeError` is thrown at load time.
 ```
 
 - Responses are buffered (up to 32 MiB) so hooks can rewrite them.
+- **Rewriting the body drops the original response's `Content-Length`** so Go
+  recomputes the length (or falls back to chunked encoding) instead of truncating
+  or hanging the client.
 - **Streaming responses (SSE, after the first `Flush()`) or responses larger than
   32 MiB pass through untouched**; hooks can no longer rewrite them (logged).
 - Hook errors are logged only and do not block the response.
