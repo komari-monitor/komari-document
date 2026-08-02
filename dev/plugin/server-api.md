@@ -15,6 +15,7 @@ const server = require("server");
 | [`server.injectHTML(head, body)`](#server-injecthtml) | 向每个 HTML 页面嵌入 CSS/JS | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | 以管理员身份调用系统 RPC | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | 注册插件自己的 RPC 方法 | 始终授予 |
+| [`server.cron(expr, handler)`](#server-cron) | 按 cron 表达式定时执行 handler | 始终授予 |
 | [`server.getConfig()`](#server-getconfig) | 读取配置（合并默认值） | 始终授予 |
 
 `allowRoutes` / `allowHooks` / `allowHTMLInject` 缺失时在**加载时**抛 `TypeError`
@@ -298,6 +299,30 @@ server.registerRPC("plugin:fail", () => {
 - 处理器在插件事件循环上执行；抛出的 JS `Error` 映射为 JSON-RPC 错误
   （`err.code` / `err.message` / `err.data` 会被传递）。
 - 建议使用 `plugin:<名称>:<动作>` 命名，避免与系统方法冲突。
+
+## server.cron
+
+按 cron 表达式在插件事件循环上定时执行 handler：
+
+```js
+server.cron("0 0 9 * * *", async () => {
+  // 每天早上 9 点运行
+});
+
+server.cron("@every 1m", () => {
+  // 每分钟运行一次
+});
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `expr` | cron 表达式：5 字段（分 时 日 月 周）、6 字段（秒 分 时 日 月 周）或 `@every <duration>`（如 `@every 1m`、`@every 30s`）；字段支持 `*`、`*/n`、`a-b`、逗号列表 |
+| `handler` | `() => void`，每次触发时在插件事件循环上执行 |
+
+- **始终授予**，无需权限声明。
+- 非法表达式使加载失败（错误写入 `last_error`，插件自动禁用）。
+- 同一加载内可注册多个任务；卸载或加载失败时全部自动移除。
+- handler 抛出的错误记录到插件日志，不影响后续触发。
 
 ## server.getConfig
 

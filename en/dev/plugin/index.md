@@ -19,6 +19,7 @@ plugins.
 | Capability | API | Required permission | Notes |
 | --- | --- | --- | --- |
 | Register RPC methods | `server.registerRPC` | always granted | Register `plugin:xxx` methods callable by the UI or other plugins |
+| Schedule periodic tasks | `server.cron` | always granted | Run a handler on the plugin event loop on a cron schedule |
 | Call system RPC | `server.call` | `allowSystemRPC` | Invoke any registered RPC method with admin authority |
 | Register HTTP routes | `server.route` | `allowRoutes` | Register `METHOD /path` on the host engine; supports streaming |
 | Mount a static folder | `server.static` | `allowRoutes` | Serve a folder from the plugin directory on the host engine; optional SPA fallback (`{ spa: true }`) |
@@ -181,7 +182,8 @@ data/plugin-data/<short>/   # long-term storage (untouched by updates)
 ### Permission model
 
 - **Always granted** (no declaration needed, no approval): `server.registerRPC`,
-  `server.getConfig`, file access inside the plugin directory and `__storageDir__`.
+  `server.cron`, `server.getConfig`, file access inside the plugin directory and
+  `__storageDir__`.
 - **Granted by declaration** (runtime settings, no approval): `permissions.node`,
   `maxHTTPBodyBytes`, `maxChildOutputBytes`, `timeout`.
 - **Require admin approval** (7 sensitive capabilities; any of them being `true`
@@ -253,7 +255,7 @@ runtime APIs).
 | Document | Contents |
 | --- | --- |
 | [Manifest Reference](./manifest) | All `komari-plugin.json` fields, permissions, configuration, pages |
-| [server Module](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.getConfig` and lifecycle hooks |
+| [server Module](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.cron` / `server.getConfig` and lifecycle hooks |
 | [JS Runtime](./runtime) | Every JavaScript API available in the sandbox and its compatibility |
 | [RPC Methods](./rpc) | All system RPC methods callable via `server.call` |
 | [Publishing to the Plugin Market](./market) | Publish your plugin to the official plugin market |

@@ -16,6 +16,7 @@ const server = require("server");
 | [`server.injectHTML(head, body)`](#server-injecthtml) | Embed CSS/JS into every HTML page | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | Call system RPC with admin authority | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | Register a plugin-owned RPC method | Always granted |
+| [`server.cron(expr, handler)`](#server-cron) | Run handler on a cron schedule | Always granted |
 | [`server.getConfig()`](#server-getconfig) | Read configuration (merged with defaults) | Always granted |
 
 Missing `allowRoutes` / `allowHooks` / `allowHTMLInject` throws `TypeError` at
@@ -316,6 +317,33 @@ server.registerRPC("plugin:fail", () => {
   (`err.code` / `err.message` / `err.data` are propagated).
 - Prefer the `plugin:<name>:<action>` naming convention to avoid clashes with system
   methods.
+
+## server.cron
+
+Runs a handler on the plugin event loop on a cron schedule:
+
+```js
+server.cron("0 0 9 * * *", async () => {
+  // Runs every day at 09:00
+});
+
+server.cron("@every 1m", () => {
+  // Runs every minute
+});
+```
+
+| Arg | Description |
+| --- | --- |
+| `expr` | Cron expression: 5 fields (minute hour day-of-month month day-of-week), 6 fields (second minute hour day-of-month month day-of-week), or `@every <duration>` (e.g. `@every 1m`, `@every 30s`); fields support `*`, `*/n`, `a-b`, and comma lists |
+| `handler` | `() => void`; runs on the plugin event loop on every fire |
+
+- **Always granted**, no permission declaration needed.
+- An invalid expression fails the load (the error is written to `last_error` and the
+  plugin is auto-disabled).
+- Multiple jobs may be registered per load; all are removed automatically on unload or
+  load failure.
+- Errors thrown by the handler are logged to the plugin log and do not stop future
+  fires.
 
 ## server.getConfig
 

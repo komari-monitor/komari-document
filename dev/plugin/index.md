@@ -15,6 +15,7 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 | 能力                  | API                      | 需要的权限                       | 说明                                                                                             |
 | --------------------- | ------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------ |
 | 注册 RPC 方法         | `server.registerRPC`     | 始终授予                         | 注册 `plugin:xxx` 命名的方法，供前端或其他插件调用                                               |
+| 定时任务              | `server.cron`            | 始终授予                         | 按 cron 表达式在插件事件循环上定时执行 handler                                                    |
 | 调用系统 RPC          | `server.call`            | `allowSystemRPC`                 | 以管理员身份调用任意已注册 RPC 方法                                                              |
 | 注册 HTTP 路由        | `server.route`           | `allowRoutes`                    | 在服务端引擎上注册 `METHOD /path`，支持流式响应                                                  |
 | 挂载静态文件夹        | `server.static`          | `allowRoutes`                    | 在服务端引擎上挂载插件目录内的静态文件夹，可选 SPA 回退（`{ spa: true }`）                      |
@@ -148,8 +149,8 @@ data/plugin-data/<short>/   # 长期存储
 
 ### 权限模型
 
-- **始终授予**（无需声明，不触发批准）：`server.registerRPC`、`server.getConfig`、
-  插件目录内及 `__storageDir__` 内的文件访问。
+- **始终授予**（无需声明，不触发批准）：`server.registerRPC`、`server.cron`、
+  `server.getConfig`、插件目录内及 `__storageDir__` 内的文件访问。
 - **声明即授予**：`permissions.node`（Node 兼容模块）、`maxHTTPBodyBytes`、
   `maxChildOutputBytes`、`timeout` —— 运行时设置，不触发批准。
 - **需管理员批准**：
@@ -198,7 +199,7 @@ POST /api/rpc2
 | 文档                        | 内容                                                                                                                            |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | [清单文件参考](./manifest)  | `komari-plugin.json` 全部字段、权限、配置项、页面                                                                               |
-| [server 模块](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.getConfig` 与生命周期钩子 |
+| [server 模块](./server-api) | `server.route` / `server.static` / `server.hook` / `server.injectHTML` / `server.call` / `server.registerRPC` / `server.cron` / `server.getConfig` 与生命周期钩子 |
 | [JS 运行时](./runtime)      | 沙箱内可用的全部 JavaScript API 与兼容性                                                                                        |
 | [RPC 接口](./rpc)           | `server.call` 可调用的全部系统 RPC 方法                                                                                         |
 | [发布到插件市场](./market)  | 将插件发布到官方插件市场                                                                                                        |
