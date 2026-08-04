@@ -33,7 +33,7 @@ documentation of each method, see the [RPC documentation](/en/dev/rpc).
 | Method | Description |
 | --- | --- |
 | `public:getMe` | Current user (Guest placeholder for visitors) |
-| `public:getNodesInformation` | Public node basic info (hidden nodes/sensitive fields filtered) |
+| `public:getNodesInformation` | Public node basic info (hidden nodes are excluded for unauthenticated callers; IPs, private remarks, versions, and tokens are filtered for all callers) |
 | `public:getPublicSettings` | Public site settings |
 | `public:getVersion` | Server version |
 | `public:getClientRecentRecords` | Node's recent status cache |

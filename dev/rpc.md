@@ -436,7 +436,7 @@ Komari 参数传递支持指名和数组两种方式。
 
 | 返回值类型 | 描述 |
 | --- | --- |
-| `Client[]` | 未登录时排除隐藏节点并清空 token、IP、私有备注和版本字段 |
+| `Client[]` | 未认证调用方排除隐藏节点；无论是否认证，均不返回 `token`、`ipv4`、`ipv6`、私有备注 `remark` 和 `version` 字段。公共备注 `public_remark` 仍可返回 |
 
 ## public:getPublicSettings
 

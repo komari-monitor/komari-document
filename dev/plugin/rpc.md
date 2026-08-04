@@ -30,7 +30,7 @@
 | 方法 | 说明 |
 | --- | --- |
 | `public:getMe` | 当前用户（访客返回 Guest 占位） |
-| `public:getNodesInformation` | 公开节点基本信息（隐藏节点/敏感字段已过滤） |
+| `public:getNodesInformation` | 公开节点基本信息（未认证调用方不返回隐藏节点；无论是否认证，均过滤 IP、私有备注、版本和 Token） |
 | `public:getPublicSettings` | 公开站点设置 |
 | `public:getVersion` | 服务端版本 |
 | `public:getClientRecentRecords` | 节点最近状态缓存 |
