@@ -24,6 +24,7 @@ plugins.
 | Register HTTP routes | `server.route` | `allowRoutes` | Register `METHOD /path` on the host engine; supports streaming |
 | Mount a static folder | `server.static` | `allowRoutes` | Serve a folder from the plugin directory on the host engine; optional SPA fallback (`{ spa: true }`) |
 | Intercept HTTP requests/responses | `server.hook` | `allowHooks` | Modify every HTTP request/response entering or leaving the server |
+| Intercept WebSocket connections/frames | `server.hook` (ws kinds) | `allowHooks` | wsConnect (allow/deny a connection), wsMessage/wsSend (inspect/replace/drop frames), wsClose (connection ended) |
 | Embed CSS/JS into every page | `server.injectHTML` | `allowHTMLInject` | Embed head/body fragments into every HTML response (incl. admin and terminal pages) |
 | Read plugin configuration | `server.getConfig` | always granted | Read saved configuration merged with manifest defaults |
 | Declare configuration items | manifest `configuration` | no permission | Admin UI generates a config form automatically |
@@ -346,9 +347,9 @@ runtime APIs).
   them, and path traversal / symlink escapes are rejected at the OS level (`os.Root`).
 - `server.call` runs with **admin authority** — a plugin calling `admin:*` methods is
   equivalent to the admin doing it themselves.
-- The JS runtime is **not a browser and not full Node.js**: no DOM, WebSocket, ESM,
-  `for await...of`, or complete `fs`. Read the [JS Runtime Reference](./runtime) before
-  relying on any API.
+- The JS runtime is **not a browser and not full Node.js**: no DOM, WebSocket client
+  API, ESM, `for await...of`, or complete `fs`. Read the [JS Runtime Reference](./runtime)
+  before relying on any API.
 - Each JS turn is bounded by `timeout` (default 30 s): script init, `load()`, route
   handlers, hooks, RPC handlers, and fetch all obey it. A route handler that never
   calls `end()` produces **504**.

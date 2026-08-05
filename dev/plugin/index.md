@@ -20,6 +20,7 @@ goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/�
 | 注册 HTTP 路由        | `server.route`           | `allowRoutes`                    | 在服务端引擎上注册 `METHOD /path`，支持流式响应                                                  |
 | 挂载静态文件夹        | `server.static`          | `allowRoutes`                    | 在服务端引擎上挂载插件目录内的静态文件夹，可选 SPA 回退（`{ spa: true }`）                       |
 | 拦截 HTTP 请求/响应   | `server.hook`            | `allowHooks`                     | 修改进入和离开服务端的所有 HTTP 请求/响应                                                        |
+| 拦截 WebSocket 连接/帧 | `server.hook`（ws 类）  | `allowHooks`                     | wsConnect（拒绝/放行连接）、wsMessage/wsSend（查看/替换/丢弃帧）、wsClose（连接结束通知）       |
 | 向所有页面嵌入 CSS/JS | `server.injectHTML`      | `allowHTMLInject`                | 向每个 HTML 响应嵌入 head/body 片段（含管理页、终端页）                                          |
 | 读取插件配置          | `server.getConfig`       | 始终授予                         | 读取保存的配置（与清单默认值合并）                                                               |
 | 声明配置项            | manifest `configuration` | 无需权限                         | 管理界面自动生成配置表单                                                                         |
@@ -238,8 +239,8 @@ POST /api/rpc2
   `fs` 和 `require` 被限制在这两个目录内，路径穿越和指向目录外的软链接在操作系统层
   （`os.Root`）被拒绝。
 - `server.call` 以**管理员身份**执行——插件调用 `admin:*` 方法等于管理员本人操作。
-- JS 运行时**不是**浏览器也不是完整 Node.js：没有 DOM、WebSocket、ESM、`for await...of`、
-  完整 `fs` 等。依赖任何 API 前请先阅读 [JS 运行时参考](./runtime)。
+- JS 运行时**不是**浏览器也不是完整 Node.js：没有 DOM、WebSocket 客户端 API、ESM、
+  `for await...of`、完整 `fs` 等。依赖任何 API 前请先阅读 [JS 运行时参考](./runtime)。
 - 单次执行受 `timeout`（默认 30 秒）限制：脚本初始化、`load()`、路由处理器、钩子、
   RPC 处理器、fetch 都受此约束。路由处理器超时未 `end()` 会返回 **504**。
 - 没有按插件的 CPU/内存/网络配额；`process.memoryUsage()` 等读取的是整个 Komari 进程。

@@ -51,7 +51,7 @@
 | `node` | boolean | `false` | 启用 Node.js 兼容模块（events/path/os/process/fs/child_process/net/http/stream/crypto 及 `Buffer`、`process`、`global` 全局变量） | 否 |
 | `allowSystemRPC` | boolean | `false` | 允许 `server.call` 以管理员身份调用任意系统 RPC | **是** |
 | `allowRoutes` | boolean | `false` | 允许 `server.route` 在宿主引擎上注册 HTTP 路由 | **是** |
-| `allowHooks` | boolean | `false` | 允许 `server.hook` 修改 HTTP 请求/响应 | **是** |
+| `allowHooks` | boolean | `false` | 允许 `server.hook` 修改 HTTP 请求/响应，以及 ws 类钩子（wsConnect/wsMessage/wsSend/wsClose）拦截 WebSocket 连接与帧 | **是** |
 | `allowHTMLInject` | boolean | `false` | 允许 `server.injectHTML` 向每个 HTML 页面嵌入 CSS/JS | **是** |
 | `allowExec` | boolean | `false` | 允许 `child_process` 执行子进程 | **是** |
 | `allowListen` | boolean | `false` | 允许 `net`/`http` Server 监听本地端口 | **是** |

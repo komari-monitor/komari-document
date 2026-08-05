@@ -11,7 +11,7 @@ const server = require("server");
 | --- | --- | --- |
 | [`server.route(method, path, handler)`](#server-route) | 在宿主引擎注册 HTTP 路由 | `allowRoutes` |
 | [`server.static(path, dir, opts)`](#server-static) | 挂载插件目录内的静态文件夹，可选 SPA 回退 | `allowRoutes` |
-| [`server.hook(kind, matcher?, fn)`](#server-hook) | 注册请求/响应钩子 | `allowHooks` |
+| [`server.hook(kind, matcher?, fn)`](#server-hook) | 注册请求/响应/WebSocket 钩子 | `allowHooks` |
 | [`server.injectHTML(head, body)`](#server-injecthtml) | 向每个 HTML 页面嵌入 CSS/JS | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | 以管理员身份调用系统 RPC | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | 注册插件自己的 RPC 方法 | 始终授予 |
@@ -155,9 +155,10 @@ server.static("/app", "dist", { spa: true }); // SPA 模式
 
 ## server.hook
 
-在宿主的 HTTP 链上注册**请求钩子**或**响应钩子**。默认影响进入/离开服务端的**所有**
-HTTP 请求（WebSocket 升级请求除外，它们直接穿透）；传入可选的路径过滤后只影响
-匹配的请求（不匹配的请求完全跳过钩子链，不做 body 缓冲）：
+在宿主的 HTTP 链上注册**请求钩子**、**响应钩子**或**WebSocket 钩子**。默认影响
+进入/离开服务端的**所有** HTTP 请求（WebSocket 升级请求除外，它们直接穿透 HTTP 钩子，
+但会触发 WS 钩子）；传入可选的路径过滤后只影响匹配的请求（不匹配的请求完全跳过钩子链，
+不做 body 缓冲）：
 
 ```js
 server.hook("request", (req) => {
@@ -172,11 +173,11 @@ server.hook("response", "/api/*", (req, res) => {
 
 | 参数 | 类型 | 说明 |
 | --- | --- | --- |
-| `kind` | `"request"` \| `"response"` | 钩子类型 |
-| `matcher` | string（可选） | 路径过滤：`"/api/foo"`（精确）、`"/api/*"`（子树）、`"POST /api/foo"`（方法 + 路径）；大小写不敏感 |
-| `fn` | function | 请求钩子 `fn(req)`；响应钩子 `fn(req, res)` |
+| `kind` | `"request"` \| `"response"` \| `"wsConnect"` \| `"wsMessage"` \| `"wsSend"` \| `"wsClose"` | 钩子类型（大小写不敏感） |
+| `matcher` | string（可选） | 路径过滤：`"/api/foo"`（精确）、`"/api/*"`（子树）、`"POST /api/foo"`（方法 + 路径）；大小写不敏感。**ws 类只接受路径形式**（不含方法前缀，因为升级恒为 GET） |
+| `fn` | function | 请求钩子 `fn(req)`；响应钩子 `fn(req, res)`；ws 钩子见下 |
 
-需要 `allowHooks` 权限，否则加载时抛 `TypeError`。
+需要 `allowHooks` 权限（请求/响应与 ws 钩子共用），否则加载时抛 `TypeError`。
 
 ### 请求钩子 `req`
 
@@ -214,6 +215,85 @@ server.hook("response", "/api/*", (req, res) => {
 - **流式响应（SSE 等，第一次 `Flush()`）或超过 32 MiB 的响应直接穿透**，
   钩子无法再改写（有日志记录）。
 - 钩子错误仅记录日志，不阻断响应。
+
+### WebSocket 钩子
+
+ws 类钩子作用于服务端的**全部 WebSocket 端点**：Agent 上报
+（`/api/clients/report`、`/api/clients/v2/rpc`）、前端 RPC2（`/api/rpc2`）、
+终端转发（`/api/admin/client/:uuid/terminal`、`/api/clients/terminal`）与在线列表
+（`/api/clients`）。与请求/响应钩子共用 `allowHooks` 权限，否则加载时抛 `TypeError`。
+
+```js
+// 连接级：升级时调用；undefined = 放行，{ deny: true, reason } = 拒绝
+server.hook("wsConnect", (ctx) => {
+  if (ctx.path === "/api/clients/v2/rpc" && ctx.remoteIp.startsWith("10.")) {
+    return { deny: true, reason: "intranet agents must use the private endpoint" };
+  }
+});
+
+// 帧级：每个入站（客户端→服务端）帧
+server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
+  if (msg.type !== 1) return;                 // 1 = text，2 = binary
+  let req = JSON.parse(msg.data);
+  if (req.method === "agent.basicInfo") {
+    req.params.info.ipv4 = "1.2.3.4";         // 改写 Agent 上报的公网 IP
+    return { data: JSON.stringify(req) };     // 替换帧
+  }
+  // return { drop: true };                   // 丢弃该帧（后果自负，见下）
+});
+
+// 帧级：每个出站（服务端→客户端）帧
+server.hook("wsSend", (ctx, msg) => {
+  return { type: msg.type, data: msg.data };  // 原样返回 = 放行
+});
+
+// 连接结束通知（wsClose 的 return 被忽略）
+server.hook("wsClose", (ctx) => {
+  console.log("connection closed", ctx.connId);
+});
+```
+
+**`ctx`**（连接上下文，连接建立时构造一次，帧回调共享同一对象）：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `path` | string | 端点路径，如 `/api/clients/v2/rpc` |
+| `connId` | number | 连接唯一 ID（Go 侧 `SafeConn.ID`） |
+| `remoteIp` | string | TCP 来源 IP |
+| `userAgent` | string | User-Agent |
+| `clientUuid` | string \| undefined | 已识别 Agent 的 uuid（v2 握手时已有；v1 需读首帧后才可知） |
+
+**`msg`**（帧对象，`wsMessage`/`wsSend` 相同结构）：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `type` | number | gorilla 帧类型：`1`=text、`2`=binary（控制帧由库内部处理，不会回调） |
+| `data` | string（type=1）/ `ArrayBuffer`（type=2） | 帧载荷 |
+| `connId` | number | 同 ctx |
+| `path` | string | 同 ctx |
+
+**`return` 语义**（同步返回）：
+
+| return | 含义 |
+| --- | --- |
+| `undefined` / 不返回 | 放行，帧原样继续 |
+| `{ drop: true }` | 丢弃该帧：读侧透明跳过并继续读下一帧；写侧不发送 |
+| `{ type, data }` | 替换帧（可只给 `data`，type 不变） |
+
+::: warning 由插件自行承担后果
+帧钩子不做协议校验。**丢弃帧可能破坏协议**：例如丢掉 v2 的 ack 帧会让服务端事件
+队列不确认、丢掉终端二进制帧会让终端卡住。平台只保证：被丢弃的帧立即释放、读循环
+在**连续丢弃 16 帧**后结束连接（防止某端点被钩子完全阻塞时死循环）。
+:::
+
+- 多个钩子按注册顺序**链式执行**：前一个钩子的替换结果作为下一个的输入；`drop`
+  优先于后续钩子。
+- **超时语义**：帧回调在插件事件循环上执行，但等待上限为 **1 秒**（`wsConnect`/
+  `wsClose` 沿用插件 `timeout`）。超时/钩子抛错时该帧**原样放行**并记入插件日志，
+  绝不让钩子错误拖死读泵（Agent v1 读泵有 11s deadline，v2 更短）。
+- **帧大小上限 8 MiB**：超过的帧不经过钩子直接放行（防止大帧复制进事件循环）。
+- 端点级路径过滤复用 `hookMatcher` 语法；**不带 matcher = 全部 WS 端点**。
+- 卸载插件时 ws 钩子自动移除；已建立的连接在钩子消失后恢复直通。
 
 ## server.injectHTML
 

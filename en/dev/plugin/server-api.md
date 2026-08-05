@@ -12,7 +12,7 @@ const server = require("server");
 | --- | --- | --- |
 | [`server.route(method, path, handler)`](#server-route) | Register an HTTP route on the host engine | `allowRoutes` |
 | [`server.static(path, dir, opts)`](#server-static) | Mount a static folder from the plugin directory, optional SPA fallback | `allowRoutes` |
-| [`server.hook(kind, matcher?, fn)`](#server-hook) | Register request/response hooks | `allowHooks` |
+| [`server.hook(kind, matcher?, fn)`](#server-hook) | Register request/response/WebSocket hooks | `allowHooks` |
 | [`server.injectHTML(head, body)`](#server-injecthtml) | Embed CSS/JS into every HTML page | `allowHTMLInject` |
 | [`server.call(method, params...)`](#server-call) | Call system RPC with admin authority | `allowSystemRPC` |
 | [`server.registerRPC(method, handler)`](#server-registerrpc) | Register a plugin-owned RPC method | Always granted |
@@ -163,11 +163,11 @@ server.static("/app", "dist", { spa: true }); // SPA mode
 
 ## server.hook
 
-Registers **request** or **response** hooks on the host HTTP chain. By default they
-affect **all** HTTP requests entering/leaving the server (except WebSocket upgrade
-requests, which pass through untouched); with an optional path filter they only run
-for matching requests (non-matching requests skip the hook chain entirely, including
-body buffering):
+Registers **request**, **response** or **WebSocket** hooks on the host HTTP chain. By
+default they affect **all** HTTP requests entering/leaving the server (WebSocket upgrade
+requests pass through the HTTP hooks untouched, but trigger the ws hooks); with an
+optional path filter they only run for matching requests (non-matching requests skip the
+hook chain entirely, including body buffering):
 
 ```js
 server.hook("request", (req) => {
@@ -182,11 +182,12 @@ server.hook("response", "/api/*", (req, res) => {
 
 | Arg | Type | Description |
 | --- | --- | --- |
-| `kind` | `"request"` \| `"response"` | Hook type |
-| `matcher` | string (optional) | Path filter: `"/api/foo"` (exact), `"/api/*"` (subtree), `"POST /api/foo"` (method + path); case-insensitive |
-| `fn` | function | Request hook `fn(req)`; response hook `fn(req, res)` |
+| `kind` | `"request"` \| `"response"` \| `"wsConnect"` \| `"wsMessage"` \| `"wsSend"` \| `"wsClose"` | Hook type (case-insensitive) |
+| `matcher` | string (optional) | Path filter: `"/api/foo"` (exact), `"/api/*"` (subtree), `"POST /api/foo"` (method + path); case-insensitive. **The ws kinds accept path-only matchers** (no method prefix, since every upgrade is a GET) |
+| `fn` | function | Request hook `fn(req)`; response hook `fn(req, res)`; ws hooks see below |
 
-Requires `allowHooks`, otherwise a `TypeError` is thrown at load time.
+Requires `allowHooks` (shared by the request/response and ws kinds), otherwise a
+`TypeError` is thrown at load time.
 
 ### Request hook `req`
 
@@ -225,6 +226,90 @@ Requires `allowHooks`, otherwise a `TypeError` is thrown at load time.
 - **Streaming responses (SSE, after the first `Flush()`) or responses larger than
   32 MiB pass through untouched**; hooks can no longer rewrite them (logged).
 - Hook errors are logged only and do not block the response.
+
+### WebSocket hooks
+
+The ws kinds target **every WebSocket endpoint** on the server: agent reporting
+(`/api/clients/report`, `/api/clients/v2/rpc`), the web RPC2 channel (`/api/rpc2`),
+terminal forwarding (`/api/admin/client/:uuid/terminal`, `/api/clients/terminal`) and
+the online list (`/api/clients`). They share the `allowHooks` permission with the
+request/response kinds; otherwise a `TypeError` is thrown at load time.
+
+```js
+// Connection-level: runs at upgrade time; undefined = allow, { deny, reason } = reject
+server.hook("wsConnect", (ctx) => {
+  if (ctx.path === "/api/clients/v2/rpc" && ctx.remoteIp.startsWith("10.")) {
+    return { deny: true, reason: "intranet agents must use the private endpoint" };
+  }
+});
+
+// Frame-level: every inbound (client → server) frame
+server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
+  if (msg.type !== 1) return;                 // 1 = text, 2 = binary
+  let req = JSON.parse(msg.data);
+  if (req.method === "agent.basicInfo") {
+    req.params.info.ipv4 = "1.2.3.4";         // rewrite the agent-reported public IP
+    return { data: JSON.stringify(req) };     // replace the frame
+  }
+  // return { drop: true };                   // drop the frame (your responsibility, below)
+});
+
+// Frame-level: every outbound (server → client) frame
+server.hook("wsSend", (ctx, msg) => {
+  return { type: msg.type, data: msg.data };  // returning the same values = pass through
+});
+
+// Connection teardown notification (the return value is ignored)
+server.hook("wsClose", (ctx) => {
+  console.log("connection closed", ctx.connId);
+});
+```
+
+**`ctx`** (connection context, built once at connect; frame callbacks share it):
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `path` | string | Endpoint path, e.g. `/api/clients/v2/rpc` |
+| `connId` | number | Unique connection ID (Go `SafeConn.ID`) |
+| `remoteIp` | string | TCP source IP |
+| `userAgent` | string | User-Agent |
+| `clientUuid` | string \| undefined | Resolved agent uuid (available at upgrade for v2; v1 needs the first frame, so it may be `undefined`) |
+
+**`msg`** (frame object, same shape for `wsMessage` and `wsSend`):
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `type` | number | gorilla frame type: `1`=text, `2`=binary (control frames are handled internally by the library and never reach hooks) |
+| `data` | string (type=1) / `ArrayBuffer` (type=2) | Frame payload |
+| `connId` | number | Same as ctx |
+| `path` | string | Same as ctx |
+
+**Return semantics** (synchronous):
+
+| Return | Meaning |
+| --- | --- |
+| `undefined` / no return | Pass through, frame continues unchanged |
+| `{ drop: true }` | Drop the frame: the read side transparently skips it and keeps reading; the write side does not send it |
+| `{ type, data }` | Replace the frame (only `data` is enough; `type` stays) |
+
+::: warning The plugin bears the consequences
+Frame hooks do no protocol validation. **Dropping frames can break the protocol**:
+dropping a v2 ack frame leaves the server event queue unacknowledged, dropping a
+terminal binary frame stalls the terminal. The platform only guarantees: dropped frames
+are released immediately, and the read loop ends the connection after **16 consecutive
+drops** (so a fully filtered endpoint cannot spin forever).
+:::
+
+- Multiple hooks run **in registration order as a chain**: each hook sees the previous
+  hook's replacement; `drop` wins over later hooks.
+- **Timeout semantics**: frame callbacks run on the plugin event loop but the wait is
+  capped at **1 second** (`wsConnect`/`wsClose` use the plugin `timeout`). On timeout or
+  a hook error the frame **passes through unchanged** and the plugin log records it, so
+  a hook can never stall the read pumps (the v1 agent pump runs on an 11s deadline, v2
+  shorter).
+- **Frame size cap of 8 MiB**: larger frames bypass the hooks entirely.
+- Path filtering reuses the `hookMatcher` syntax; **no matcher = every WS endpoint**.
+- Unloading a plugin removes its ws hooks; established connections revert to pass-through.
 
 ## server.injectHTML
 
