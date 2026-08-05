@@ -373,6 +373,27 @@ Komari 系统包含以下特殊页面，这些页面不受主题影响：
 1. **主题外观**: 使用 `appearance` 来实现明暗主题切换
 2. **国际化**: 使用 `language` 来支持多语言功能
 
+### 语义化 classname
+
+默认主题为绝大多数页面和组件提供了语义化的 `km-` 前缀 classname，作为稳定的 DOM 定位钩子，方便自定义脚本（自定义头部/底部 HTML、浏览器插件、油猴脚本等）通过 `querySelector` 直接操作页面元素：
+
+```js
+// 示例：给所有节点卡片添加描边
+document.querySelectorAll(".km-node-card").forEach((card) => {
+  card.style.outline = "2px solid var(--accent-9)";
+});
+```
+
+#### 命名规则
+
+| 类型       | 规则                       | 示例                                                                                                                    |
+| ---------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 页面根节点 | `km-page-<路由>`           | `km-page-instance`、`km-page-admin-dashboard`、`km-page-admin-settings-general`、`km-page-admin-market-plugins`         |
+| 布局容器   | `km-layout` / `km-main` 等 | `km-layout`、`km-main`、`km-navbar`、`km-footer`、`km-admin-layout`、`km-admin-settings-layout`                         |
+| 共享组件   | `km-<组件名>`              | `km-node-card`、`km-node-display`、`km-login-dialog`、`km-upload-dialog`、`km-load-chart`、`km-command-clipboard`       |
+| 页面区块   | `km-<页面>-<区块>`         | `km-instance-server-list`、`km-instance-server-item`、`km-dashboard-card`、`km-exec-editor-input`、`km-plugins-toolbar` |
+| UI 基础件  | `km-ui-<组件>`             | `km-ui-button`、`km-ui-input`、`km-ui-table`、`km-ui-table-row`、`km-ui-checkbox`                                       |
+
 ::: tip 提示
 关于接口？请求查看 [API 接口文档](./api.md)。
 :::
