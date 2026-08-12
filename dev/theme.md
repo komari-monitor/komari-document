@@ -25,9 +25,9 @@ theme.zip
 
 ```json
 {
-  "name": "Komari Test Theme",
+  "name": { "zh-CN": "Komari 测试主题", "en": "Komari Test Theme" },
   "short": "TestTheme", // 唯一标识符，只能包含大小写字母、数字、下划线和连字符
-  "description": "A test theme for Komari",
+  "description": { "zh-CN": "用于 Komari 的测试主题", "en": "A test theme for Komari" },
   "version": "1.0.0",
   "author": "Akizon77",
   "url": "https://github.com/komari-monitor/komari",
@@ -40,17 +40,19 @@ theme.zip
 
 | 字段            | 类型   | 必需       | 描述                                                                                     |
 | --------------- | ------ | ---------- | ---------------------------------------------------------------------------------------- |
-| `name`          | string | 是         | 主题的完整名称                                                                           |
+| `name`          | string \| object | 是         | 主题的完整名称；支持多语言对象                                                           |
 | `short`         | string | 是         | 主题的唯一标识符，只能包含大小写字母、数字、下划线和连字符；不能为空，且不能为 `default` |
-| `description`   | string | 否（建议） | 主题的描述信息；未填写时后台列表会显示为空                                               |
+| `description`   | string \| object | 否（建议） | 主题的描述信息；支持多语言对象；未填写时后台列表会显示为空                               |
 | `version`       | string | 否（建议） | 主题版本号，建议使用语义化版本；未填写时后台列表会显示为空                               |
-| `author`        | string | 否（建议） | 主题作者；未填写时后台列表会显示为空                                                     |
+| `author`        | string \| object | 否（建议） | 主题作者；支持多语言对象；未填写时后台列表会显示为空                                     |
 | `url`           | string | 否         | 主题的项目地址或作者网站                                                                 |
 | `preview`       | string | 否         | 预览图片的相对路径（相对于主题根目录）                                                   |
 | `configuration` | object | 否         | 主题的动态配置（自 1.0.5 起支持）                                                        |
 
 ::: tip 提示
 后端安装主题时只强制校验 `name` 和 `short`，但建议补全 `description`、`version`、`author` 等展示字段，避免管理后台出现空信息。
+
+`name`、`description` 和 `author` 都可以是普通字符串，或 `{ "zh-CN": "...", "en": "..." }` 形式的多语言对象。管理后台会按当前语言显示。
 :::
 
 ## 动态配置（自 1.0.5 起支持）
@@ -121,6 +123,24 @@ theme.zip
         "type": "richtext",
         "default": "",
         "help": "支持较长 HTML 文本"
+      },
+      {
+        "name": "<strong>选择器底层保存 JSON 字符串，公开 API 返回数组。</strong>",
+        "type": "textbox"
+      },
+      {
+        "key": "featured_nodes",
+        "name": "展示节点",
+        "type": "nodes",
+        "default": "[]",
+        "help": "保存为节点 UUID 的 JSON 字符串数组，读取时返回 string[]"
+      },
+      {
+        "key": "featured_ping_tasks",
+        "name": "展示 Ping 任务",
+        "type": "pingtasks",
+        "default": "[]",
+        "help": "保存为 Ping 任务数字 ID 的 JSON 字符串数组，读取时返回 number[]"
       }
     ]
   }
@@ -184,22 +204,25 @@ theme.zip
 
 | 字段       | 适用类型   | 必需 | 描述                                                                     |
 | ---------- | ---------- | ---- | ------------------------------------------------------------------------ |
-| `type`     | 全部       | 是   | `string` / `number` / `select` / `switch` / `richtext` / `title`         |
-| `name`     | 全部       | 是   | 显示名称，支持字符串或多语言对象；`title` 类型用于分组标题，不需要 `key` |
-| `key`      | 除 `title` | 是   | 唯一键                                                                   |
+| `type`     | 全部       | 是   | `string` / `number` / `select` / `switch` / `richtext` / `nodes` / `pingtasks` / `title` / `textbox` |
+| `name`     | 全部       | 是   | 显示名称，支持字符串或多语言对象；`title` 用于分组，`textbox` 为 HTML 文本 |
+| `key`      | 除 `title` / `textbox` | 是 | 唯一键                                                                   |
 | `required` | `string`   | 否   | 是否必填（默认 `false`）                                                 |
 | `options`  | `select`   | 是   | 逗号分隔的选项：`"A,B,C"`                                                |
-| `default`  | 除 `title` | 否   | 默认值                                                                   |
-| `help`     | 除 `title` | 否   | 帮助提示文本，支持字符串或多语言对象                                     |
+| `default`  | 除 `title` / `textbox` | 否 | 默认值                                                                   |
+| `help`     | 除 `title` / `textbox` | 否 | 帮助提示文本，支持字符串或多语言对象                                     |
 
 #### 类型含义
 
 - `title`: 纯分隔/标题行，无交互，不应包含 `key`、`default`。
+- `textbox`: 纯 HTML 文本块，不保存配置值，也不会生成分组导航。HTML 直接渲染，仅应安装可信主题。
 - `string`: 文本输入。
 - `number`: 数字输入，前端需自行校验范围。
 - `select`: 下拉选择，`options` 为必填。
 - `switch`: 布尔开关，值为 `true/false`。
 - `richtext`: 长文本输入，适合 HTML 片段或较长配置文本。
+- `nodes`: 节点多选，右侧“选择节点”按钮打开选择器。数据库保存 JSON 字符串，例如 `"[\"node-uuid-a\",\"node-uuid-b\"]"`；`/api/public` 返回 `string[]`。
+- `pingtasks`: Ping 任务多选。数据库保存 JSON 字符串，例如 `"[1,2]"`；`/api/public` 返回 `number[]`。
 
 ### 多语言文本
 
@@ -225,9 +248,59 @@ theme.zip
 - `select` 未设置 `default` 时，会使用 `options` 中的第一个选项。
 - `number` 未设置 `default` 时默认 `0`。
 - `switch` 未设置 `default` 时默认 `false`。
+- `nodes` / `pingtasks` 未设置 `default` 时底层默认字符串 `"[]"`，公开 API 返回空数组 `[]`。
 - `string` / `richtext` 等其他类型未设置 `default` 时默认空字符串。
 
 这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。
+
+选择器引用的节点或 Ping 任务被删除后，`/api/public` 会忽略该引用，不会输出已删除对象的 ID。主题设置提交保持上述 JSON 字符串格式；后端只在输出时将其解码为数组。
+
+#### 选择器的保存与读取结构
+
+主题后台通过 `POST /api/admin/theme/settings?theme=<short>` 保存配置。对于 `nodes` 和
+`pingtasks`，请求体保持为 JSON array 文本的字符串：
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+  "selected_ping_tasks": "[8,7]"
+}
+```
+
+保存到 `ThemeConfiguration.Data` 的整段 JSON 与请求相同：这两个字段始终是 **string**，其值为 JSON array 文本；其余字段维持各自原本的 JSON 类型：
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+  "selected_ping_tasks": "[8,7]"
+}
+```
+
+`GET /api/public` 使用标准响应 envelope。主题实际使用的是 `data.theme_settings`；selector
+字段在这里是数组，而不是保存层的字符串：
+
+```json
+{
+  "status": "success",
+  "message": "",
+  "data": {
+    "sitename": "Komari",
+    "theme": "managed-config-demo",
+    "theme_settings": {
+      "headline": "Komari configuration demo",
+      "selected_nodes": [
+        "8832553d-a03f-4312-af8b-c5d9ed959c93",
+        "76d47ce1-bb17-4f03-adf5-c9a795dc1fe2"
+      ],
+      "selected_ping_tasks": [8, 7]
+    }
+  }
+}
+```
+
+对于已安装且非 `default` 的 managed 主题，未实际保存的配置项会按清单默认值补齐；未声明默认值的选择器返回 `[]`。已删除节点或 Ping 任务的 ID 会保留在保存层，但不会出现在 `theme_settings` 的输出数组中。
 
 `raw` 和 `redirect` 不会生成 `theme_settings` 表单；它们只负责定义后台主题菜单点击后的呈现方式。`raw` 的 HTML 来自主题包本身，请只安装可信来源的主题。
 

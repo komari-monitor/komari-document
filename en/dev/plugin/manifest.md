@@ -91,7 +91,10 @@ values via `server.getConfig()` (saved values are merged with manifest defaults)
       { "key": "count", "name": "Count", "type": "number" },
       { "key": "enabled", "name": "Enabled", "type": "switch", "default": true },
       { "key": "mode", "name": "Mode", "type": "select", "options": "json,text" },
-      { "key": "note", "name": "Note", "type": "string", "help": "Usage instructions" }
+      { "key": "note", "name": "Note", "type": "string", "help": "Usage instructions" },
+      { "name": "<strong>Selections are stored as JSON strings and returned as arrays.</strong>", "type": "textbox" },
+      { "key": "nodes", "name": "Nodes", "type": "nodes", "default": "[]" },
+      { "key": "tasks", "name": "Ping Tasks", "type": "pingtasks", "default": "[]" }
     ]
   }
 }
@@ -101,13 +104,19 @@ values via `server.getConfig()` (saved values are merged with manifest defaults)
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `key` | string | Yes | Configuration key |
+| `key` | string | Yes, except `title` / `textbox` | Configuration key |
 | `name` | string \| i18n | Yes | Form label |
-| `type` | string | Yes | `string` / `number` / `select` / `switch` / `title` / `richtext` |
+| `type` | string | Yes | `string` / `number` / `select` / `switch` / `title` / `textbox` / `richtext` / `nodes` / `pingtasks` |
 | `options` | string | No | Options for `select`, comma-separated |
 | `default` | any | No | Default value |
 | `required` | boolean | No | Whether the field is required |
 | `help` | string \| i18n | No | Help text |
+
+`textbox` renders `name` as static HTML and has no stored value or navigation tab;
+install only trusted plugins. `nodes` and `pingtasks` use the corresponding selectors.
+Their database values are JSON strings: nodes use UUIDs such as `"[\"node-uuid\"]"`,
+and Ping tasks use numeric IDs such as `"[1]"`. `server.getConfig()` returns `string[]`
+and `number[]` respectively and omits deleted references.
 
 ### Default value merge rules
 
@@ -119,9 +128,83 @@ values take precedence. Unsaved keys are filled with these fallbacks:
 | `select` | first option |
 | `number` | `0` |
 | `switch` | `false` |
+| `nodes` / `pingtasks` | stored as `"[]"`, returned as `[]` |
 | others | `""` |
 
 Configuration is stored in the `plugin_configurations` table of the main database.
+
+### Selector Storage and Output
+
+The plugin admin UI saves through `admin:setPluginConfiguration` (the REST bridge is
+`POST /api/admin/plugin/configuration`). Selector fields inside `data` are JSON-array text
+strings:
+
+```json
+{
+  "short": "managed-config-demo",
+  "data": {
+    "headline": "Komari configuration demo",
+    "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+    "selected_ping_tasks": "[8,7]"
+  }
+}
+```
+
+The JSON text stored in `PluginConfiguration.Data` is the same as the request. Both selector
+values are **strings** containing JSON arrays. Node values contain UUIDs and Ping task values
+contain numeric IDs:
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+  "selected_ping_tasks": "[8,7]"
+}
+```
+
+At runtime, `await server.getConfig()` resolves directly to the configuration object; it has
+no HTTP envelope:
+
+```js
+const config = await server.getConfig();
+// config.selected_nodes: string[]
+// config.selected_ping_tasks: number[]
+```
+
+For the example above, the result is:
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": [
+    "8832553d-a03f-4312-af8b-c5d9ed959c93",
+    "76d47ce1-bb17-4f03-adf5-c9a795dc1fe2"
+  ],
+  "selected_ping_tasks": [8, 7]
+}
+```
+
+`admin:getPluginConfiguration` (REST:
+`GET /api/admin/plugin/configuration?short=managed-config-demo`) uses the standard envelope:
+
+```json
+{
+  "status": "success",
+  "message": "",
+  "data": {
+    "configuration": { "type": "managed", "data": [] },
+    "data": {
+      "headline": "Komari configuration demo",
+      "selected_nodes": ["8832553d-a03f-4312-af8b-c5d9ed959c93"],
+      "selected_ping_tasks": [8, 7]
+    }
+  }
+}
+```
+
+`configuration` is the manifest declaration; the nested `data` is the current value set.
+Deleted node and Ping task IDs remain in storage but are omitted from `server.getConfig()`
+and the admin read result.
 
 ## Pages
 

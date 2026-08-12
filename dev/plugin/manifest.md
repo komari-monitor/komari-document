@@ -74,7 +74,10 @@
       { "key": "count", "name": "Count", "type": "number" },
       { "key": "enabled", "name": "Enabled", "type": "switch", "default": true },
       { "key": "mode", "name": "Mode", "type": "select", "options": "json,text" },
-      { "key": "note", "name": "Note", "type": "string", "help": "使用说明" }
+      { "key": "note", "name": "Note", "type": "string", "help": "使用说明" },
+      { "name": "<strong>选择结果底层保存为 JSON 字符串，getConfig 返回数组。</strong>", "type": "textbox" },
+      { "key": "nodes", "name": "Nodes", "type": "nodes", "default": "[]" },
+      { "key": "tasks", "name": "Ping Tasks", "type": "pingtasks", "default": "[]" }
     ]
   }
 }
@@ -84,13 +87,17 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `key` | string | 是 | 配置键名 |
+| `key` | string | 除 `title` / `textbox` 外必填 | 配置键名 |
 | `name` | string \| i18n | 是 | 表单标签 |
-| `type` | string | 是 | `string` / `number` / `select` / `switch` / `title` / `richtext` |
+| `type` | string | 是 | `string` / `number` / `select` / `switch` / `title` / `textbox` / `richtext` / `nodes` / `pingtasks` |
 | `options` | string | 否 | `select` 类型的选项，逗号分隔 |
 | `default` | any | 否 | 默认值 |
 | `required` | boolean | 否 | 是否必填 |
 | `help` | string \| i18n | 否 | 帮助说明 |
+
+- `textbox` 是直接渲染的 HTML 文本块，不保存值、不生成分组导航，只应来自可信插件。
+- `nodes` 底层保存节点 UUID 的 JSON 字符串，例如 `"[\"node-uuid\"]"`，`server.getConfig()` 返回 `string[]`。
+- `pingtasks` 底层保存 Ping 任务数字 ID 的 JSON 字符串，例如 `"[1]"`，`server.getConfig()` 返回 `number[]`。已删除的节点和任务不会出现在 `server.getConfig()` 返回值中。
 
 ### 默认值合并规则
 
@@ -102,9 +109,78 @@
 | `select` | 第一个选项 |
 | `number` | `0` |
 | `switch` | `false` |
+| `nodes` / `pingtasks` | 底层为 `"[]"`，`server.getConfig()` 返回 `[]` |
 | 其他 | `""` |
 
 配置保存在主库 `plugin_configurations` 表中。
+
+### 选择器的保存与读取结构
+
+插件后台保存调用 `admin:setPluginConfiguration`（REST 桥接为
+`POST /api/admin/plugin/configuration`）。请求参数如下，`data` 内的选择器保持为 JSON array 文本的字符串：
+
+```json
+{
+  "short": "managed-config-demo",
+  "data": {
+    "headline": "Komari configuration demo",
+    "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+    "selected_ping_tasks": "[8,7]"
+  }
+}
+```
+
+保存到 `PluginConfiguration.Data` 的整段 JSON 与请求相同，`nodes` 和 `pingtasks` 都是
+**string**，分别装载 UUID / 数字 ID 的 JSON array 文本：
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
+  "selected_ping_tasks": "[8,7]"
+}
+```
+
+插件运行时调用 `await server.getConfig()` 时，直接得到配置对象本身，没有 HTTP envelope：
+
+```js
+const config = await server.getConfig();
+// config.selected_nodes: string[]
+// config.selected_ping_tasks: number[]
+```
+
+对应结果为：
+
+```json
+{
+  "headline": "Komari configuration demo",
+  "selected_nodes": [
+    "8832553d-a03f-4312-af8b-c5d9ed959c93",
+    "76d47ce1-bb17-4f03-adf5-c9a795dc1fe2"
+  ],
+  "selected_ping_tasks": [8, 7]
+}
+```
+
+管理端读取 `admin:getPluginConfiguration`（REST：
+`GET /api/admin/plugin/configuration?short=managed-config-demo`）则使用标准 envelope：
+
+```json
+{
+  "status": "success",
+  "message": "",
+  "data": {
+    "configuration": { "type": "managed", "data": [] },
+    "data": {
+      "headline": "Komari configuration demo",
+      "selected_nodes": ["8832553d-a03f-4312-af8b-c5d9ed959c93"],
+      "selected_ping_tasks": [8, 7]
+    }
+  }
+}
+```
+
+`configuration` 是清单的配置声明，内层 `data` 才是当前值。已删除节点或 Ping 任务的 ID 保留在保存层，但不会出现在 `server.getConfig()` 或管理端读取结果中。
 
 ## 页面 `pages`
 
