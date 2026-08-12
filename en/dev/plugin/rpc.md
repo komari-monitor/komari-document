@@ -67,6 +67,7 @@ documentation of each method, see the [RPC documentation](/en/dev/rpc).
 | `admin:getXtermjsSettings` / `setXtermjsSettings` | Terminal settings |
 | `admin:listMetricDefinitions` / `updateMetricDefinition` / `getMetricMigrationStatus` / `startMetricMigration` / `cancelMetricMigration` | Metric management |
 | `admin:getDatabaseSize` / `vacuumDatabase` | Database maintenance |
+| `admin:dbQuery` / `dbExec` / `dbTables` | Query, execute SQL, or list tables in the main/metrics database (`{database?: "main" \| "metrics"}`) |
 | `admin:listPlugins` / `setPluginEnabled` / `getPluginLogs` / `deletePlugin` / `getPluginConfiguration` / `setPluginConfiguration` | **Plugin management** |
 
 ### client: (agents)

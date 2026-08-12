@@ -1544,6 +1544,92 @@ Komari 参数传递支持指名和数组两种方式。
 | --- | --- |
 | `DatabaseMaintenanceResult` | 成功时返回该结构 |
 
+## admin:dbQuery
+
+描述：对主数据库或指标数据库执行 SQL 查询。该方法仅受既有 `admin:*` ACL 控制。
+
+参数：
+
+| 参数名 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| database | `"main" \| "metrics"` | 否 | 数据库目标，默认 `"main"` |
+| sql | `string` | 是 | 要执行的 SQL 查询 |
+| args | `any[]` | 否 | SQL 的位置参数 |
+| limit | `number` | 否 | 最多返回行数，默认 `1000`，范围 `1` 到 `10000` |
+
+返回：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| database | string | 实际查询的数据库目标 |
+| driver | string | 当前驱动：`sqlite`、`mysql` 或 `postgresql` |
+| columns | string[] | 列名，定义 `rows` 中每个数组的顺序 |
+| rows | any[][] | 查询结果；每行按 `columns` 顺序返回 |
+| row_count | number | 本次返回的行数 |
+| truncated | boolean | 查询结果超过 `limit` 时为 `true` |
+
+返回值中的 `NULL` 会转换为 `null`，二进制 `[]byte` 转换为字符串，`time.Time` 转换为
+RFC3339Nano 字符串；其他数值、布尔和字符串保持原值。
+
+示例：
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"admin:dbQuery","params":{"database":"main","sql":"SELECT uuid, name FROM clients WHERE name LIKE ?","args":["web%"],"limit":100}}
+```
+
+## admin:dbExec
+
+描述：对主数据库或指标数据库执行 SQL 语句。每次调用都会记录一条不包含 SQL 文本的 `warn` 审计日志。
+
+参数：
+
+| 参数名 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| database | `"main" \| "metrics"` | 否 | 数据库目标，默认 `"main"` |
+| sql | `string` | 是 | 要执行的 SQL 语句 |
+| args | `any[]` | 否 | SQL 的位置参数 |
+
+返回：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| database | string | 实际执行的数据库目标 |
+| driver | string | 当前驱动 |
+| rows_affected | number | 受影响的行数 |
+| last_insert_id | number \| null | 驱动支持时的最后插入 ID；不支持时为 `null` |
+
+示例：
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"admin:dbExec","params":{"database":"metrics","sql":"DELETE FROM metric_points WHERE timestamp_milli < ?","args":[1711929600000]}}
+```
+
+## admin:dbTables
+
+描述：列出主数据库或指标数据库中的表名。返回的表名按升序排序。
+
+参数：
+
+| 参数名 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| database | `"main" \| "metrics"` | 否 | 数据库目标，默认 `"main"` |
+
+返回：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| database | string | 实际查询的数据库目标 |
+| driver | string | 当前驱动 |
+| tables | string[] | 排序后的表名列表 |
+
+示例：
+
+```json
+{"jsonrpc":"2.0","id":3,"method":"admin:dbTables","params":{"database":"metrics"}}
+```
+
+以上三个方法中，非法 `database`、空 `sql` 或超出范围的 `limit` 返回 `InvalidParams`；数据库执行失败返回 `InternalError` 并携带底层错误信息。
+
 
 ## 数据结构
 

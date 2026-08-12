@@ -64,6 +64,7 @@
 | `admin:getXtermjsSettings` / `setXtermjsSettings` | 终端设置 |
 | `admin:listMetricDefinitions` / `updateMetricDefinition` / `getMetricMigrationStatus` / `startMetricMigration` / `cancelMetricMigration` | 指标管理 |
 | `admin:getDatabaseSize` / `vacuumDatabase` | 数据库维护 |
+| `admin:dbQuery` / `dbExec` / `dbTables` | 查询、执行 SQL 或列出主库/指标库表名（`{database?: "main" \| "metrics"}`） |
 | `admin:listPlugins` / `setPluginEnabled` / `getPluginLogs` / `deletePlugin` / `getPluginConfiguration` / `setPluginConfiguration` | **插件管理** |
 
 ### client:（Agent）
