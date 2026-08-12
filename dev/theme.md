@@ -221,8 +221,8 @@ theme.zip
 - `select`: 下拉选择，`options` 为必填。
 - `switch`: 布尔开关，值为 `true/false`。
 - `richtext`: 长文本输入，适合 HTML 片段或较长配置文本。
-- `nodes`: 节点多选，右侧“选择节点”按钮打开选择器。数据库保存 JSON 字符串，例如 `"[\"node-uuid-a\",\"node-uuid-b\"]"`；`/api/public` 返回 `string[]`。
-- `pingtasks`: Ping 任务多选。数据库保存 JSON 字符串，例如 `"[1,2]"`；`/api/public` 返回 `number[]`。
+- `nodes`: 节点多选，右侧“选择节点”按钮打开选择器。选择后字段下方追加一行显示已选名称，逗号分隔，最多 50 个字符，超出以 `...` 结尾。数据库保存 JSON 字符串，例如 `"[\"node-uuid-a\",\"node-uuid-b\"]"`；`/api/public` 返回 `string[]`。
+- `pingtasks`: Ping 任务多选，右侧“选择 Ping 任务”按钮打开选择器，下方同样追加显示已选名称。数据库保存 JSON 字符串，例如 `"[1,2]"`；`/api/public` 返回 `number[]`。
 
 ### 多语言文本
 

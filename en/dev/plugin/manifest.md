@@ -116,7 +116,8 @@ values via `server.getConfig()` (saved values are merged with manifest defaults)
 install only trusted plugins. `nodes` and `pingtasks` use the corresponding selectors.
 Their database values are JSON strings: nodes use UUIDs such as `"[\"node-uuid\"]"`,
 and Ping tasks use numeric IDs such as `"[1]"`. `server.getConfig()` returns `string[]`
-and `number[]` respectively and omits deleted references.
+and `number[]` respectively and omits deleted references. The selected names are shown
+below each field, comma-separated, capped at 50 characters with an ellipsis.
 
 ### Default value merge rules
 

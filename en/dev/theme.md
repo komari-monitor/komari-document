@@ -46,8 +46,11 @@ Managed configuration supports `string`, `number`, `select`, `switch`, `richtext
   so only install themes you trust.
 - `nodes` opens the shared node selector. Database storage is a string containing a JSON
   array of node UUIDs, such as `"[\"node-a\",\"node-b\"]"`; `/api/public` returns `string[]`.
+  Selected names are shown below the field, comma-separated, capped at 50 characters with
+  an ellipsis.
 - `pingtasks` opens the Ping task selector. Database storage is a string containing a JSON
-  array of numeric task IDs, such as `"[1,2]"`; `/api/public` returns `number[]`.
+  array of numeric task IDs, such as `"[1,2]"`; `/api/public` returns `number[]`. Selected
+  names are shown below the field with the same 50-character truncation.
 
 When a selector has no declared default, its stored default is the string `"[]"` and its
 public API value is `[]`. `number` defaults to `0`, `switch` defaults to `false`, and other

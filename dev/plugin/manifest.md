@@ -96,8 +96,8 @@
 | `help` | string \| i18n | 否 | 帮助说明 |
 
 - `textbox` 是直接渲染的 HTML 文本块，不保存值、不生成分组导航，只应来自可信插件。
-- `nodes` 底层保存节点 UUID 的 JSON 字符串，例如 `"[\"node-uuid\"]"`，`server.getConfig()` 返回 `string[]`。
-- `pingtasks` 底层保存 Ping 任务数字 ID 的 JSON 字符串，例如 `"[1]"`，`server.getConfig()` 返回 `number[]`。已删除的节点和任务不会出现在 `server.getConfig()` 返回值中。
+- `nodes` 底层保存节点 UUID 的 JSON 字符串，例如 `"[\"node-uuid\"]"`，`server.getConfig()` 返回 `string[]`。选择后字段下方会追加显示已选名称，最多 50 个字符，超出省略。
+- `pingtasks` 底层保存 Ping 任务数字 ID 的 JSON 字符串，例如 `"[1]"`，`server.getConfig()` 返回 `number[]`。已删除的节点和任务不会出现在 `server.getConfig()` 返回值中；下方同样显示已选名称。
 
 ### 默认值合并规则
 
