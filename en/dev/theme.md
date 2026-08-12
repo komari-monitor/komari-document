@@ -36,71 +36,17 @@ Supported configuration modes include:
 - `raw`: the theme provides its own raw configuration page.
 - `redirect`: the admin menu redirects to a theme-provided page.
 
-### Managed Field Types
+### Managed Configuration
 
-Managed configuration supports `string`, `number`, `select`, `switch`, `richtext`,
-`nodes`, `pingtasks`, `title`, and `textbox`.
-
-- `title` starts a settings group and its navigation tab; it has no `key`.
-- `textbox` renders its `name` as static HTML. It has no saved value or navigation tab,
-  so only install themes you trust.
-- `nodes` opens the shared node selector. Database storage is a string containing a JSON
-  array of node UUIDs, such as `"[\"node-a\",\"node-b\"]"`; `/api/public` returns `string[]`.
-  Selected names are shown below the field, comma-separated, capped at 50 characters with
-  an ellipsis.
-- `pingtasks` opens the Ping task selector. Database storage is a string containing a JSON
-  array of numeric task IDs, such as `"[1,2]"`; `/api/public` returns `number[]`. Selected
-  names are shown below the field with the same 50-character truncation.
-
-When a selector has no declared default, its stored default is the string `"[]"` and its
-public API value is `[]`. `number` defaults to `0`, `switch` defaults to `false`, and other
-value fields default to `""`. Deleted nodes and Ping tasks are omitted from `/api/public`.
-
-```json
-{
-  "configuration": {
-    "type": "managed",
-    "data": [
-      { "name": "Display", "type": "title" },
-      { "name": "<strong>Choose the visible data.</strong>", "type": "textbox" },
-      { "key": "visible_nodes", "name": "Visible Nodes", "type": "nodes", "default": "[]" },
-      { "key": "visible_tasks", "name": "Visible Ping Tasks", "type": "pingtasks", "default": "[]" }
-    ]
-  }
-}
-```
+Field tables, type meanings, i18n text, default value merge rules, and selector
+storage/output rules are shared with plugins. See [Managed Configuration](./managed-config).
 
 ## Public API
 
 Theme pages can use public Komari APIs to read site settings, node status, and theme settings. See [API](/en/dev/api) for entry points.
 
-### Selector Storage and Output
-
-The theme admin page saves through `POST /api/admin/theme/settings?theme=<short>`.
-`nodes` and `pingtasks` are JSON-array text strings in the request:
-
-```json
-{
-  "headline": "Komari configuration demo",
-  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
-  "selected_ping_tasks": "[8,7]"
-}
-```
-
-The JSON text stored in `ThemeConfiguration.Data` is the same as the request: selector
-values are always **strings** containing JSON arrays. Other fields keep their normal JSON
-types:
-
-```json
-{
-  "headline": "Komari configuration demo",
-  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
-  "selected_ping_tasks": "[8,7]"
-}
-```
-
-`GET /api/public` uses the standard response envelope. Theme code reads
-`data.theme_settings`; its selector values are typed arrays rather than storage strings:
+The theme admin page saves through `POST /api/admin/theme/settings?theme=<short>` and
+exposes the values through `data.theme_settings` in `GET /api/public`:
 
 ```json
 {
@@ -122,8 +68,7 @@ types:
 ```
 
 For installed, non-`default` managed themes, missing values are filled from manifest
-defaults; a selector without a declared default returns `[]`. Deleted node and Ping task
-IDs remain in storage but are omitted from the `theme_settings` output.
+defaults and deleted node and Ping task IDs are omitted from the `theme_settings` output.
 
 ## Theme Market and Releases
 

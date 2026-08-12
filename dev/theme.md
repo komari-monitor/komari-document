@@ -200,93 +200,19 @@ theme.zip
 | `name` | string \| object | 否         | 在管理面板展示的配置标题；支持多语言对象；未填写可由系统回退到主题名                                                               |
 | `data` | array \| string  | 按类型决定 | `managed` 为配置项数组，`raw` 为 HTML 字符串，`redirect` 为基于站点根目录的站内相对路径字符串                                      |
 
-### managed 配置项（data 数组元素）
+### managed 配置项
 
-| 字段       | 适用类型   | 必需 | 描述                                                                     |
-| ---------- | ---------- | ---- | ------------------------------------------------------------------------ |
-| `type`     | 全部       | 是   | `string` / `number` / `select` / `switch` / `richtext` / `nodes` / `pingtasks` / `title` / `textbox` |
-| `name`     | 全部       | 是   | 显示名称，支持字符串或多语言对象；`title` 用于分组，`textbox` 为 HTML 文本 |
-| `key`      | 除 `title` / `textbox` | 是 | 唯一键                                                                   |
-| `required` | `string`   | 否   | 是否必填（默认 `false`）                                                 |
-| `options`  | `select`   | 是   | 逗号分隔的选项：`"A,B,C"`                                                |
-| `default`  | 除 `title` / `textbox` | 否 | 默认值                                                                   |
-| `help`     | 除 `title` / `textbox` | 否 | 帮助提示文本，支持字符串或多语言对象                                     |
+配置项字段、类型含义、多语言文本、默认值合并规则与选择器的存储/输出规则由主题和插件共用，
+详见 [托管配置文档](./managed-config)。
 
-#### 类型含义
-
-- `title`: 纯分隔/标题行，无交互，不应包含 `key`、`default`。
-- `textbox`: 纯 HTML 文本块，不保存配置值，也不会生成分组导航。HTML 直接渲染，仅应安装可信主题。
-- `string`: 文本输入。
-- `number`: 数字输入，前端需自行校验范围。
-- `select`: 下拉选择，`options` 为必填。
-- `switch`: 布尔开关，值为 `true/false`。
-- `richtext`: 长文本输入，适合 HTML 片段或较长配置文本。
-- `nodes`: 节点多选，右侧“选择节点”按钮打开选择器。选择后字段下方追加一行显示已选名称，逗号分隔，最多 50 个字符，超出以 `...` 结尾。数据库保存 JSON 字符串，例如 `"[\"node-uuid-a\",\"node-uuid-b\"]"`；`/api/public` 返回 `string[]`。
-- `pingtasks`: Ping 任务多选，右侧“选择 Ping 任务”按钮打开选择器，下方同样追加显示已选名称。数据库保存 JSON 字符串，例如 `"[1,2]"`；`/api/public` 返回 `number[]`。
-
-### 多语言文本
-
-`configuration.name`、`managed` 配置项的 `name` 和 `help` 可以是字符串，也可以是多语言对象：
-
-```json
-{
-  "name": {
-    "zh-CN": "背景图片 URL",
-    "en": "Background Image URL",
-    "ja": "背景画像 URL"
-  }
-}
-```
-
-前端会优先匹配当前语言（如 `zh-CN`），然后匹配基础语言（如 `zh`），最后回退到对象中的第一个值。
-
-### 默认值与公开数据
-
-`/api/public` 返回的 `theme_settings` 会公开当前主题的动态配置值。对于已安装且非 `default` 的 `managed` 主题，后端会把已保存配置和 `komari-theme.json` 中声明的默认值合并：
-
-- 已保存的值优先。
-- `select` 未设置 `default` 时，会使用 `options` 中的第一个选项。
-- `number` 未设置 `default` 时默认 `0`。
-- `switch` 未设置 `default` 时默认 `false`。
-- `nodes` / `pingtasks` 未设置 `default` 时底层默认字符串 `"[]"`，公开 API 返回空数组 `[]`。
-- `string` / `richtext` 等其他类型未设置 `default` 时默认空字符串。
-
-这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。
-
-选择器引用的节点或 Ping 任务被删除后，`/api/public` 会忽略该引用，不会输出已删除对象的 ID。主题设置提交保持上述 JSON 字符串格式；后端只在输出时将其解码为数组。
-
-#### 选择器的保存与读取结构
-
-主题后台通过 `POST /api/admin/theme/settings?theme=<short>` 保存配置。对于 `nodes` 和
-`pingtasks`，请求体保持为 JSON array 文本的字符串：
-
-```json
-{
-  "headline": "Komari configuration demo",
-  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
-  "selected_ping_tasks": "[8,7]"
-}
-```
-
-保存到 `ThemeConfiguration.Data` 的整段 JSON 与请求相同：这两个字段始终是 **string**，其值为 JSON array 文本；其余字段维持各自原本的 JSON 类型：
-
-```json
-{
-  "headline": "Komari configuration demo",
-  "selected_nodes": "[\"8832553d-a03f-4312-af8b-c5d9ed959c93\",\"76d47ce1-bb17-4f03-adf5-c9a795dc1fe2\"]",
-  "selected_ping_tasks": "[8,7]"
-}
-```
-
-`GET /api/public` 使用标准响应 envelope。主题实际使用的是 `data.theme_settings`；selector
-字段在这里是数组，而不是保存层的字符串：
+主题通过 `POST /api/admin/theme/settings?theme=<short>` 保存配置，并通过 `GET /api/public`
+的 `data.theme_settings` 公开。`/api/public` 输出示例：
 
 ```json
 {
   "status": "success",
   "message": "",
   "data": {
-    "sitename": "Komari",
     "theme": "managed-config-demo",
     "theme_settings": {
       "headline": "Komari configuration demo",
@@ -300,7 +226,7 @@ theme.zip
 }
 ```
 
-对于已安装且非 `default` 的 managed 主题，未实际保存的配置项会按清单默认值补齐；未声明默认值的选择器返回 `[]`。已删除节点或 Ping 任务的 ID 会保留在保存层，但不会出现在 `theme_settings` 的输出数组中。
+这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。
 
 `raw` 和 `redirect` 不会生成 `theme_settings` 表单；它们只负责定义后台主题菜单点击后的呈现方式。`raw` 的 HTML 来自主题包本身，请只安装可信来源的主题。
 

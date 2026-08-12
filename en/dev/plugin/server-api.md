@@ -440,5 +440,5 @@ console.log(config.interval); // defaults already merged
 ```
 
 - Returns a Promise resolving to a `{ [key]: value }` object.
-- Merge rules: see [Manifest Reference - Default value merge rules](./manifest#default-value-merge-rules).
+- Merge rules: see [Managed Configuration - Default Value Merge Rules](../managed-config#default-value-merge-rules).
 - **Always granted**.

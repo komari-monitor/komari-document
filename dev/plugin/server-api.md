@@ -414,5 +414,5 @@ console.log(config.interval); // 已合并默认值
 ```
 
 - 返回 Promise，resolve 为 `{ [key]: value }` 对象。
-- 合并规则见 [清单文件参考 - 默认值合并规则](./manifest#默认值合并规则)。
+- 合并规则见 [托管配置文档 - 默认值合并规则](../managed-config#默认值合并规则)。
 - **始终授予**。
