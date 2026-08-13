@@ -116,7 +116,7 @@ completion, validation, and English hover descriptions:
 }
 ```
 
-The generated project uses package version `1.4.1`. Package versions and Komari
+The generated project uses package version `1.4.3`. Package versions and Komari
 server versions are not required to match patch-for-patch; this SDK release tracks
 the Komari `1.4.x` compatibility line. The manifest `komari` field is a server
 version constraint and currently uses supported forms such as `>=1.4.0`.
