@@ -7,7 +7,7 @@ and the admin UI renders a form automatically. Storage and output rules are shar
 - Themes read saved values from `data.theme_settings` in `GET /api/public`.
   See [Theme Development](./theme).
 - Plugins read saved values with `await server.getConfig()`; admins can use
-  `admin:getPluginConfiguration`. See [Plugin Manifest](./plugin/manifest).
+  `admin:getPluginConfiguration`. See [Plugin Development](./plugin/index).
 
 ## Shape
 

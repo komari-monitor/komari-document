@@ -4,7 +4,7 @@
 `type: "managed"` 与 `data` 配置项数组，管理界面会自动生成表单，并按统一规则保存和输出。
 
 - 主题：通过 `GET /api/public` 的 `data.theme_settings` 读取，见 [主题开发指南](./theme)。
-- 插件：通过 `await server.getConfig()` 读取；管理端可用 `admin:getPluginConfiguration`，见 [插件清单](./plugin/manifest)。
+- 插件：通过 `await server.getConfig()` 读取；管理端可用 `admin:getPluginConfiguration`，见 [插件开发指南](./plugin/index)。
 
 ## 结构
 
