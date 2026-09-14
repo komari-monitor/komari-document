@@ -4,8 +4,6 @@ Komari 提供了一个 JSON-RPC2 接口。你可以通过 Websocket 或 POST 调
 
 基础路径：`/api/rpc2`
 
-[JSON-RPC2 调试工具](https://json-rpc2-debugger.pages.dev/)
-
 :::warning 注意
 仅 >=1.0.7 的版本可以使用 RPC2
 :::

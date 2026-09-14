@@ -2,60 +2,56 @@
 
 ## Introduction
 
-Komari supports extending the server with **JavaScript plugins**. A plugin is a ZIP package containing a manifest (`komari-plugin.json`) and an entry script (default `script.js`). Plugins run inside the server process in their own sandboxed goja JS runtime, and can register HTTP routes, intercept HTTP requests/responses, call system RPC methods, register their own RPC methods, declare configuration items, and inject admin pages.
+Komari supports extending the server with **JavaScript plugins**. A plugin is a ZIP package containing a manifest (`komari-plugin.json`) and an entry script (default `script.js`). Plugins run inside the server process in their own goja JavaScript runtime (sandbox), and can register HTTP routes, intercept HTTP requests and responses, call system RPC methods, register their own RPC methods, declare configuration items, and inject admin pages.
 
 ::: warning Security
-Plugins run with **admin privileges** and may request sensitive capabilities such as filesystem access, child process execution, or port listening. Only install plugins you trust; review the declared permissions carefully before enabling third-party plugins.
+Plugins inherit Komari's system privileges and may request sensitive capabilities such as filesystem access, child process execution, or port listening. Only install plugins you trust, and review the declared permissions carefully before enabling a third-party plugin.
 :::
 
-### What a plugin can do
+## Table of Contents
 
-| Capability | API | Required permission | Notes |
-| --- | --- | --- | --- |
-| Register RPC methods | `server.registerRPC` | always granted | Register `plugin:xxx` methods callable by the UI or other plugins |
-| Schedule periodic tasks | `server.cron` | always granted | Run a handler on a cron schedule |
-| Call system RPC | `server.call` | `allowSystemRPC` | Invoke any registered system RPC with admin authority |
-| Register HTTP routes | `server.route` | `allowRoutes` | Register `METHOD /path`; supports streaming |
-| Mount a static folder | `server.static` | `allowRoutes` | Optional SPA fallback |
-| Intercept HTTP requests/responses | `server.hook` | `allowHooks` | Modify requests/responses entering or leaving the server |
-| Intercept WebSocket | `server.hook` (ws kinds) | `allowHooks` | wsConnect / wsMessage / wsSend / wsClose |
-| Embed CSS/JS | `server.injectHTML` | `allowHTMLInject` | Embed fragments into every HTML page |
-| Read configuration | `server.getConfig` | always granted | Read saved config merged with manifest defaults |
-| Declare configuration items | manifest `configuration` | no permission | Admin UI generates a config form automatically |
-| Inject admin pages | manifest `pages` | no permission | iframe / redirect pages in the admin sidebar |
-| File access | `fs` / `require` | inside plugin dir: always granted | Escaping requires `allowAllFileAccess` |
-| Node compatibility modules | `node` modules | `node` | events / fs / path / os / process / net / http / crypto, etc. |
-| Child processes | `child_process` | `allowExec` | Execute external commands |
-| Port listening | `net` / `http` Server | `allowListen` | Binds `127.0.0.1` by default |
+- [1. Quick Start](#1-quick-start)
+- [2. Plugin Package and Manifest](#2-plugin-package-and-manifest)
+- [3. Lifecycle Interfaces](#3-lifecycle-interfaces)
+- [4. JavaScript Runtime and Compatibility Modules](#4-javascript-runtime-and-compatibility-modules)
+- [5. `server` Module](#5-server-module)
+- [6. Plugin Pages](#6-plugin-pages)
+- [7. Plugin Configuration](#7-plugin-configuration)
+- [8. Plugin-owned RPC](#8-plugin-owned-rpc)
+- [9. Plugin Management HTTP Interfaces](#9-plugin-management-http-interfaces)
+- [10. Permissions, Limits, and Errors](#10-permissions-limits-and-errors)
 
-### Installation limits
+## 1. Quick Start
 
-ZIP packages: up to 10,000 files, each file ≤ 128 MiB, total extracted ≤ 512 MiB, manifest ≤ 1 MiB. Any path-traversal entry (`../`, absolute paths) rejects the **entire** package. `komari-plugin.json` must be at the ZIP root.
+### 1.1 Using `npm create komari-plugin`
 
-## Quick Start
-
-### Using `npm create komari-plugin` (recommended)
-
-Prerequisites: Node.js 20 or later, a reachable Komari development server, and an API key with permission to install and manage plugins.
+In addition to writing a plugin manually, you can create a project with the official scaffold:
 
 ```sh
 npm create komari-plugin
 ```
 
-`npm run dev` builds the TypeScript source, packages the plugin, uploads it to the configured server, enables it, prints the runtime plugin log, and watches the source and manifest for changes — a file change automatically repeats that cycle. Use `Ctrl+C` to stop watching. The development server URL and API key are stored in `komari.local.json` (git-ignored by default); never commit them.
+The template provides these common development features:
 
-Generated project layout:
+- **Plugin hot reload**: `npm run dev` watches the source files and manifest, then automatically builds, packages, uploads, and re-enables the plugin. Changes are applied without repeating the installation manually.
+- **Log tracking**: the development command continuously prints plugin runtime logs, making load results and runtime errors easy to inspect.
+- **Type hints**: the template uses TypeScript and `@komari-monitor/plugin-sdk`, providing API types, parameter hints, and manifest field completion.
+- **Local development configuration**: the development server URL and API key are stored in `komari.local.json`, which is ignored by Git by default. Do not commit this file.
+
+The template requires Node.js 20 or later, a reachable Komari development server, and an administrator API key.
+
+The generated project looks like this:
 
 ```text
 hello/
 ├── src/plugin.ts          # TypeScript plugin source
 ├── komari-plugin.json     # Plugin manifest
-├── komari.local.json      # Local server URL and API key; never commit
+├── komari.local.json      # Local server URL and API key; do not commit
 ├── package.json
 └── tsconfig.json
 ```
 
-The generated manifest references the SDK Schema, enabling field completion, validation, and hover docs in VS Code. SDK example:
+SDK example:
 
 ```ts
 import { definePlugin, jsonResponse, server } from "@komari-monitor/plugin-sdk";
@@ -69,27 +65,39 @@ definePlugin({
 });
 ```
 
-### Manual ZIP workflow
+### 1.2 Writing a Minimal Plugin Manually
 
-1. Create the plugin directory containing `komari-plugin.json` and `script.js`.
-2. Write the manifest (see [Manifest](#manifest)).
-3. Write the entry script:
+A plugin package is a ZIP file. Its root must contain `komari-plugin.json`, and the default entry script is `script.js`:
+
+```text
+my-plugin.zip
+├── komari-plugin.json
+└── script.js
+```
+
+`komari-plugin.json`:
+
+```json
+{
+  "name": "Hello Plugin",
+  "short": "hello-plugin",
+  "description": "Minimal Komari plugin",
+  "author": "Example",
+  "version": "1.0.0",
+  "entry": "script.js",
+  "permissions": {
+    "timeout": 30
+  }
+}
+```
+
+`script.js`:
 
 ```js
 const server = require("server");
 
 function load() {
   console.log("hello plugin loaded");
-
-  // Register an HTTP route: GET /hello
-  server.route("GET", "/hello", async (req, res) => {
-    const nodes = await server.call("common:getNodes");
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({
-      greeting: "Hello, Komari!",
-      nodeCount: Object.keys(nodes).length
-    }));
-  });
 }
 
 function unload() {
@@ -97,380 +105,1597 @@ function unload() {
 }
 ```
 
-4. Put the two files directly at the ZIP **root** (no wrapping folder) and upload on the admin "Plugins" page.
-5. After installation the plugin is **disabled** by default and must be enabled manually (declaring sensitive permissions triggers the approval flow first).
+## 2. Plugin Package and Manifest
 
-### Lifecycle
+### 2.1 Package Structure
 
-- The entry script's top-level code runs immediately at load; you may define global `load()` / `unload()` functions.
-- `load()` runs every time the plugin is enabled/started (including startup recovery); `unload()` runs on disable, uninstall, or server shutdown.
-- A top-level error or a `load()` error → the plugin is **auto-disabled** (the error is persisted in `last_error`).
-- Gin route slots registered by a plugin **remain after unload** (requests return 404) and are restored on reload.
-
-### Long-term storage `__storageDir__`
-
-Every plugin gets a dedicated long-term storage directory `data/plugin-data/<short>/` when enabled, accessed via the global `__storageDir__`:
-
-```js
-const fs = require("fs");
-const path = require("path");
-fs.writeFileSync(path.join(__storageDir__, "cache.json"), "{}");
+```text
+<plugin>.zip
+├── komari-plugin.json            # Required and must be in the ZIP root
+├── script.js                     # Default entry
+├── pages/                        # Optional iframe pages and assets
+│   └── admin.html
+└── assets/
 ```
 
-- Fully separated from the code directory `data/plugin/<short>` (the ZIP contents); the `fs` sandbox covers both.
-- **Updates (reinstall) replace only the code directory; long-term storage survives.** Deleting a plugin removes both directories.
-- Nothing escapes `__storageDir__`, and other plugins' storage directories are unreachable.
+Archive limits:
 
-### Debugging
+| Limit | Current value |
+| --- | --- |
+| Maximum number of files | 10000 |
+| Maximum uncompressed file size | 128 MiB |
+| Maximum total uncompressed size | 512 MiB |
+| Maximum manifest size | 1 MiB |
 
-Each plugin has a dedicated 64 KiB ring log buffer; `console.*` output and lifecycle/hook errors are written to it, readable via `admin:getPluginLogs` (param `{short}`). When a plugin fails to load, the admin "Plugins" list shows `last_error`; combined with the plugin logs this diagnoses most issues.
-
-## Manifest
-
-`komari-plugin.json` must be located at the **root** of the plugin ZIP. It declares the plugin's metadata, permissions, configuration items, and injected pages. The server validates this file on install, load, and enable.
+### 2.2 `komari-plugin.json` Fields
 
 | Field | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
-| `name` | string \| i18n | Yes | — | Plugin name |
-| `short` | string | Yes | — | Unique plugin short name; only `[A-Za-z0-9_-]`, must not be `default` |
-| `description` | string \| i18n | No | — | Plugin description |
-| `author` | string \| i18n | No | — | Author |
-| `version` | string | No | — | Plugin version (required for market publishing) |
-| `url` | string | No | — | Project homepage / repository URL |
-| `icon` | string | No | — | Icon path; must be a relative path inside the plugin directory |
-| `komari` | string | No | `""` | Server version constraint, e.g. `>=1.0.0` |
-| `entry` | string | No | `"script.js"` | Entry script; must be a relative path inside the plugin directory |
-| `permissions` | object | No | all zero | Capability declarations (see below) |
-| `configuration` | object | No | — | Configuration declarations (see below) |
-| `pages` | array | No | `[]` | Injected admin pages (see below) |
+| `name` | `string \| Record<string,string>` | Yes | - | Plugin name. Accepts a plain string or an i18n object such as `{"zh_CN":"Example","en":"Example"}`. |
+| `short` | `string` | Yes | - | Plugin short name. Only letters, digits, `_`, and `-` are allowed. It cannot be `default` and is also used as the directory name. |
+| `description` | `string \| Record<string,string>` | No | - | Plugin description. |
+| `author` | `string \| Record<string,string>` | No | - | Author. |
+| `version` | `string` | No | - | Plugin version. Market installation compares it with the catalog version. |
+| `url` | `string` | No | - | Project homepage or repository URL. |
+| `icon` | `string` | No | - | Plugin icon. Must be a relative path inside the plugin directory. |
+| `komari` | `string` | No | - | Komari version constraint, such as `>=0.0.1` or `1.2.3`. |
+| `entry` | `string` | No | `script.js` | Entry script. Must be a relative path inside the plugin directory. |
+| `permissions` | `PluginPermissions` | No | Zero values | Runtime permissions and limits. |
+| `configuration` | `Configuration` | No | - | Configuration item declarations, using the same shape as themes. |
+| `pages` | `PluginPage[]` | No | - | Plugin page declarations. |
 
-- `name`, `description`, `author` and page `title` can be plain strings or i18n objects such as `{"zh_CN": "...", "en": "..."}`.
-- `komari` version constraint: empty = any version; `1.0.0` = exact match; `>=1.0.0` = minimum; `<=1.0.0` = maximum. Installation is rejected when the constraint is not satisfied, and loading also fails.
+Supported `komari` constraints:
 
-Minimal example:
-
-```json
-{
-  "name": "Hello World",
-  "short": "hello",
-  "description": "An example plugin",
-  "author": "Your Name",
-  "version": "1.0.0",
-  "komari": ">=1.0.0",
-  "entry": "script.js",
-  "permissions": {
-    "node": true,
-    "allowSystemRPC": true,
-    "allowRoutes": true
-  }
-}
-```
-
-## Permissions
-
-Except for `node`, `maxHTTPBodyBytes`, `maxChildOutputBytes`, and `timeout`, every permission field defaults to `false` — **nothing is granted unless declared**.
-
-| Field | Type | Default | Description | Triggers approval |
-| --- | --- | --- | --- | --- |
-| `node` | boolean | `false` | Enable Node.js compatibility modules (events/path/os/process/fs/child_process/net/http/stream/crypto and the `Buffer`/`process`/`global` globals) | No |
-| `allowSystemRPC` | boolean | `false` | Allow `server.call` to invoke system RPC with admin authority | **Yes** |
-| `allowRoutes` | boolean | `false` | Allow `server.route` to register HTTP routes on the host engine | **Yes** |
-| `allowHooks` | boolean | `false` | Allow `server.hook` to modify HTTP requests/responses and intercept WebSocket | **Yes** |
-| `allowHTMLInject` | boolean | `false` | Allow `server.injectHTML` to embed CSS/JS into every HTML page | **Yes** |
-| `allowExec` | boolean | `false` | Allow `child_process` to execute child processes | **Yes** |
-| `allowListen` | boolean | `false` | Allow `net`/`http` Servers to listen on local ports | **Yes** |
-| `allowAllFileAccess` | boolean | `false` | Allow accessing files outside the plugin directory | **Yes** |
-| `maxHTTPBodyBytes` | int | 32 MiB | Buffering limit for fetch response bodies and HTTP request bodies | No |
-| `maxChildOutputBytes` | int | 1 MiB | stdout/stderr cap for child processes | No |
-| `timeout` | int | 30 | Per-turn execution timeout in seconds | No |
-
-- **Always granted** (no declaration needed, no approval): `server.registerRPC`, `server.cron`, `server.getConfig`, and file access inside the plugin directory and `__storageDir__`.
-- When any sensitive capability (the 7 fields marked **Yes** above) is `true`, enabling the plugin requires **admin approval**: the approval hash covers only those 7 fields; later changes to `node` / timeout / size limits do **not** re-trigger approval, but changing a sensitive capability does.
-
-**Behavior when a permission is missing:**
-
-| API | Behavior without permission |
+| Syntax | Meaning |
 | --- | --- |
-| `server.route` / `server.static` / `server.hook` / `server.injectHTML` | Throws `TypeError` at **load time**; plugin load fails (auto-disabled) |
-| `server.call` | The returned Promise is **rejected** (load not blocked) |
-| `require("child_process")` | Throws (no `allowExec`) |
-| `net` / `http` Server `listen()` | Throws (no `allowListen`) |
-| `fs` / `require` outside plugin dir | Rejected by the sandbox (no `allowAllFileAccess`) |
+| Empty string | No restriction |
+| `x.y.z` | Exact match |
+| `>=x.y.z` | Greater than or equal to |
+| `>x.y.z` | Greater than |
+| `<=x.y.z` | Less than or equal to |
+| `<x.y.z` | Less than |
 
-## Configuration
+The version may have a leading `v` and contains at most three numeric components.
 
-Declarative configuration with `type: "managed"`: the admin UI generates a form automatically, and the plugin reads values via `server.getConfig()` (saved values are merged with manifest defaults).
+### 2.3 `permissions` Fields
 
-```json
-{
-  "configuration": {
-    "type": "managed",
-    "data": [
-      { "key": "greeting", "name": "Greeting", "type": "string", "default": "Hello" },
-      { "key": "count", "name": "Count", "type": "number" },
-      { "key": "enabled", "name": "Enabled", "type": "switch", "default": true },
-      { "key": "mode", "name": "Mode", "type": "select", "options": "json,text" },
-      { "key": "note", "name": "Note", "type": "string", "help": "Usage instructions" },
-      { "key": "nodes", "name": "Nodes", "type": "nodes", "default": "[]" }
-    ]
-  }
-}
-```
+| Field | Type | Default | Requires approval | Description |
+| --- | --- | --- | --- | --- |
+| `node` | `boolean` | `false` | No | Enables the Node.js compatibility modules. |
+| `allowSystemRPC` | `boolean` | `false` | Yes | Allows `server.call()` to invoke system RPC methods with administrator authority. |
+| `allowRoutes` | `boolean` | `false` | Yes | Allows `server.route()` and `server.static()`. |
+| `allowHooks` | `boolean` | `false` | Yes | Allows HTTP and WebSocket hooks. |
+| `allowHTMLInject` | `boolean` | `false` | Yes | Allows `server.injectHTML()` to inject fragments into HTML responses. |
+| `allowExec` | `boolean` | `false` | Yes | Allows `child_process` to execute child processes. |
+| `allowListen` | `boolean` | `false` | Yes | Allows `net` and `http` servers to listen on local ports. |
+| `allowAllFileAccess` | `boolean` | `false` | Yes | Allows access to files outside the plugin directory. |
+| `maxHTTPBodyBytes` | `integer` | `33554432` | No | Buffer limit for fetch response bodies, HTTP server request bodies, and route request bodies. |
+| `maxChildOutputBytes` | `integer` | `1048576` | No | Buffer limit for each stdout or stderr stream from a child process. |
+| `timeout` | `integer` | `30` | No | Per-turn execution timeout in seconds. |
 
-```js
-const config = await server.getConfig();
-console.log(config.greeting); // defaults already merged
-```
+Changing permissions invalidates the stored approval hash, so the plugin must be approved again before it can be enabled.
 
-Item fields, default value merge rules, and selector storage/output rules are shared with themes. See [Managed Configuration](../managed-config).
+### 2.4 `configuration` Field
 
-## Pages
+See [Managed Configuration](../managed-config.md).
 
-Plugins can inject pages into the admin UI (shown in the plugin group of the sidebar):
+To read the saved managed configuration, call [`server.getConfig()`](#58-servergetconfig).
+
+Example:
 
 ```json
 {
-  "pages": [
-    { "file": "admin.html", "title": "Admin Panel", "icon": "icon.png" },
-    { "type": "redirect", "title": "Go to Nodes", "url": "/" },
-    { "file": "pub.html", "title": "Public Page", "visibility": "public" }
+  "type": "managed",
+  "data": [
+    {
+      "key": "endpoint",
+      "name": "Endpoint",
+      "required": true,
+      "type": "string",
+      "default": "https://example.com"
+    },
+    {
+      "key": "enabled",
+      "name": "Enabled",
+      "type": "switch",
+      "default": true
+    }
   ]
 }
 ```
 
+### 2.5 `pages` Field
+
+| Field | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `file` | `string` | Required for `iframe` | - | Relative HTML file inside the plugin directory. Not used by `redirect`. |
+| `title` | `string \| Record<string,string>` | Yes | - | Page title. |
+| `icon` | `string` | No | - | Page icon. Relative path inside the plugin directory. |
+| `type` | `"iframe" \| "redirect"` | No | `"iframe"` | How the page is presented. |
+| `url` | `string` | Required for `redirect` | - | Internal absolute path. It must start with `/` and cannot contain `//`, a backslash, or `..`. |
+| `visibility` | `"admin" \| "public"` | No | `"admin"` | Page access scope. |
+
+`visibility: "public"` only applies to `iframe` pages. Public pages are served by `/api/plugin/:short/*filepath` without authentication, and only files in the directory of the declared public page and its subdirectories are accessible.
+
+See [Plugin Pages](#6-plugin-pages) for details.
+
+### 2.6 Complete Manifest Example
+
+```json
+{
+  "name": {
+    "zh_CN": "Status Extension",
+    "en": "Status Extension"
+  },
+  "short": "status-extension",
+  "description": "Adds a status endpoint and an admin page",
+  "author": "Example",
+  "version": "1.2.0",
+  "url": "https://example.com/status-extension",
+  "icon": "assets/icon.png",
+  "komari": ">=0.0.1",
+  "entry": "script.js",
+  "permissions": {
+    "node": true,
+    "allowRoutes": true,
+    "allowHooks": true,
+    "allowHTMLInject": true,
+    "allowSystemRPC": true,
+    "timeout": 30,
+    "maxHTTPBodyBytes": 33554432
+  },
+  "configuration": {
+    "type": "managed",
+    "data": [
+      {
+        "key": "message",
+        "name": "Message",
+        "type": "string",
+        "default": "hello"
+      }
+    ]
+  },
+  "pages": [
+    {
+      "file": "pages/admin.html",
+      "title": "Status",
+      "icon": "assets/icon.png",
+      "type": "iframe",
+      "visibility": "admin"
+    },
+    {
+      "file": "pages/public.html",
+      "title": "Public status",
+      "type": "iframe",
+      "visibility": "public"
+    }
+  ]
+}
+```
+
+## 3. Lifecycle Interfaces
+
+The plugin entry script is not a CommonJS wrapper. Its top-level code runs directly. The runtime recognizes only the optional global functions `load` and `unload`.
+
+### 3.1 `load()`
+
+**Description:** Called once after the plugin is loaded. Use it to register routes, hooks, HTML injections, cron jobs, and RPC methods, and to initialize plugin resources.
+
+**Parameters:** None.
+
+**Return value:** No value is required. It can return `undefined` or a Promise. When it returns a Promise, the runtime waits for it to settle.
+
+**Caller:** The Komari plugin manager.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  console.log("plugin loaded");
+  server.registerRPC("plugin:hello", () => ({ ok: true }));
+}
+```
+
+Async example:
+
+```js
+const server = require("server");
+
+async function load() {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  server.registerRPC("plugin:hello", () => ({ ok: true }));
+}
+```
+
+If `load()` throws or its Promise rejects, plugin loading fails, the plugin is disabled automatically, and the error is stored as `last_error`.
+
+### 3.2 `unload()`
+
+**Description:** Called once before the plugin is unloaded. Use it to release resources created by the plugin. Komari automatically unregisters the plugin's hooks, HTML injections, cron jobs, and RPC methods.
+
+**Parameters:** None.
+
+**Return value:** No value is required. It can return `undefined` or a Promise. When it returns a Promise, the runtime waits for it to settle.
+
+**Caller:** The Komari plugin manager.
+
+**Example:**
+
+```js
+let timer = null;
+
+function load() {
+  timer = setInterval(() => console.log("tick"), 1000);
+}
+
+async function unload() {
+  if (timer !== null) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
+```
+
+If `unload()` throws or its Promise rejects, the error is reported, but the manager still completes its cleanup.
+
+## 4. JavaScript Runtime and Compatibility Modules
+
+Plugins run in an isolated goja JavaScript runtime with CommonJS `require()`, Promise and async/await support, an event loop, and common web APIs. It is not a browser and not a complete Node.js implementation. A same-named API does not necessarily have the same edge-case behavior as a browser or Node.js.
+
+The following are available without any additional permission:
+
+| Category | APIs |
+| --- | --- |
+| Base interfaces | `console`, `setTimeout` / `setInterval` / `setImmediate` and their clear functions, `queueMicrotask` |
+| HTTP clients | `fetch`, `XMLHttpRequest` |
+| Always-available modules | `buffer`, `url`, `util` |
+| File access | The plugin code directory and `data/plugin-data/<short>`. The latter is available as `__storageDir__` when `node: true`. |
+
+When `permissions.node` is `true`, the runtime also injects `Buffer`, `process`, `global`, `__dirname`, and `__filename`, and provides these Node.js compatibility modules:
+
+| Module | Description |
+| --- | --- |
+| `events`, `stream`, `path`, `os`, `process` | Events, streams, paths, host information, and process interfaces. |
+| `fs` | File access. It is restricted to the plugin code directory and `__storageDir__` by default; escaping those roots requires `allowAllFileAccess`. |
+| `child_process` | Child process execution. Requires `allowExec`. |
+| `net`, `http` | TCP and HTTP. Server listening requires `allowListen` and binds to `127.0.0.1` by default. |
+| `crypto` | Hashes, random values, key derivation, AES and ChaCha20-Poly1305, and common signing and verification operations. |
+
+The runtime does not provide the browser DOM, `WebSocket`, `EventSource`, Web Streams, ESM `import` or `export`, or complete implementations of Node core modules such as `https`, `tls`, `dns`, `zlib`, and `worker_threads`. Metrics from `process.memoryUsage()` and `cpuUsage()` describe the whole Komari process, not an individual plugin. For complete compatibility boundaries, see `pkg/jsruntime/README.md` in the Komari repository.
+
+## 5. `server` Module
+
+```js
+const server = require("server");
+```
+
+### 5.1 `server.route(method, path, handler)`
+
+**Description:** Registers a route on the Komari HTTP engine.
+
+**Permission:** `allowRoutes`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `method` | `string` | Yes | HTTP method. It is converted to uppercase and cannot be empty. |
+| `path` | `string` | Yes | Route path. It must start with `/`. |
+| `handler` | `(req, res) => void \| Promise<void>` | Yes | Request handler. It may return a Promise but must eventually call `res.end()`. |
+
+**Return value:** `undefined`.
+
+**`req` object:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `method` | `string` | Request method. |
+| `url` | `string` | Request URI, including the query string. |
+| `headers` | `Record<string,string \| string[]>` | Request headers with lowercase keys. |
+| `query` | `Record<string,string>` | Query parameters. Multiple values with the same name are joined with commas. |
+| `body` | `string` | Request body text. |
+| `context` | `RequestContext` | Caller and network information. |
+
+**`req.context` object:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `principal` | `object` | The resolved caller identity. |
+| `principal.type` | `"anonymous" \| "agent" \| "user" \| "api_key"` | Identity type. |
+| `principal.roles` | `string[]` | Role list. |
+| `principal.user_uuid` | `string` | User UUID, or an empty string when absent. |
+| `principal.client_uuid` | `string` | Client UUID, or an empty string when absent. |
+| `principal.is_api_key` | `boolean` | Whether the request uses an API key. |
+| `role` | `string` | Current request role. Omitted when absent. |
+| `user_uuid` | `string` | Current user UUID. Omitted when absent. |
+| `client_uuid` | `string` | Current client UUID. Omitted when absent. |
+| `remote_ip` | `string` | Remote IP address. |
+| `user_agent` | `string` | User-Agent header. |
+
+**`res` object:**
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `statusCode` | `number` | Response status code, default `200`. |
+| `statusMessage` | `string` | Status text field. It is currently exposed only as a writable field. |
+| `streaming` | `boolean` | When `true`, `write()` pushes data immediately. |
+| `setHeader(name, value)` | `(string, string \| string[]) => res` | Sets a response header. |
+| `getHeader(name)` | `(string) => string \| string[] \| undefined` | Reads a response header. |
+| `removeHeader(name)` | `(string) => void` | Removes a response header. |
+| `write(data)` | `(string \| Buffer \| ArrayBuffer \| Uint8Array) => boolean` | Writes response data. In streaming mode it sends data immediately. |
+| `end(data?)` | `(string?) => res` | Ends the response and optionally appends text. |
+| `isAborted()` | `() => boolean` | Reports whether the client disconnected or the stream was aborted. |
+
+**Request example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/status", (req, res) => {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.end(JSON.stringify({
+      message: "ok",
+      viewer: req.context.principal.type,
+      query: req.query
+    }));
+  });
+}
+```
+
+Async and error handling example:
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("POST", "/echo", async (req, res) => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      res.setHeader("Content-Type", "application/json");
+      res.statusCode = 201;
+      res.end(JSON.stringify({ body: req.body }));
+    } catch (error) {
+      res.statusCode = 500;
+      res.end(error.message);
+    }
+  });
+}
+```
+
+Streaming example:
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/stream", (req, res) => {
+    res.streaming = true;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    let count = 0;
+    const timer = setInterval(() => {
+      if (res.isAborted() || count >= 5) {
+        clearInterval(timer);
+        res.end();
+        return;
+      }
+      res.write(`chunk-${count++}\n`);
+    }, 100);
+  });
+}
+```
+
+Route slots remain after the plugin is unloaded, but requests return `404`. A non-streaming handler times out after `permissions.timeout` seconds and returns `504`.
+
+### 5.2 `server.static(mount, dir, options?)`
+
+**Description:** Mounts a static directory from the plugin directory on an HTTP path.
+
+**Permission:** `allowRoutes`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `mount` | `string` | Yes | Mount path. It must start with `/` and cannot be `/`. |
+| `dir` | `string` | Yes | Relative directory path inside the plugin directory. |
+| `options` | `object` | No | `{ spa?: boolean }`. With `spa: true`, unmatched paths fall back to `index.html`. |
+
+**Return value:** `undefined`.
+
+**Static file behavior:**
+
+- Registers both `GET` and `HEAD`.
+- The mount root resolves to `index.html`.
+- A subdirectory resolves to that directory's `index.html`.
+- In non-SPA mode, a missing file returns `404`.
+- In SPA mode, failed resolution falls back to the mount directory's `index.html`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.static("/panel", "dist", { spa: true });
+}
+```
+
+In this example, files are served from `data/plugin/<short>/dist`.
+
+### 5.3 `server.call(method, params?)`
+
+**Description:** Calls a registered Komari RPC method with administrator authority.
+
+**Permission:** `allowSystemRPC`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `method` | `string` | Yes | RPC method name, such as `common:getVersion`. |
+| `params` | `any` | No | RPC parameters. A single value is passed directly; multiple values are passed positionally. |
+
+**Return value:** `Promise<any>`. It resolves to the RPC result. On failure it rejects with an `Error` carrying `code`, `message`, and optional `data`.
+
+**Basic calls:**
+
+```js
+const version = await server.call("common:getVersion");
+const result = await server.call("plugin:echo", { text: "hello" });
+```
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/version", async (req, res) => {
+    try {
+      const version = await server.call("common:getVersion");
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify(version));
+    } catch (error) {
+      res.statusCode = 502;
+      res.end(JSON.stringify({
+        code: error.code,
+        message: error.message,
+        data: error.data
+      }));
+    }
+  });
+}
+```
+
+For the parameters, return values, and errors of individual RPC methods, see the [RPC documentation](../rpc.md).
+
+### 5.4 `server.hook(kind, fn)` / `server.hook(kind, matcher, fn)`
+
+**Description:** Registers HTTP request or response hooks, or WebSocket connection and frame hooks.
+
+**Permission:** `allowHooks`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `kind` | `string` | Yes | `request`, `response`, `wsConnect`, `wsMessage`, `wsSend`, or `wsClose`. |
+| `matcher` | `string` | No | HTTP hooks support `"METHOD /path"`, `"/path"`, and `"/path/*"`. WebSocket hooks accept only path matchers. |
+| `fn` | `function` | Yes | Hook callback. |
+
+**Return value:** `undefined`.
+
+**Callback signatures:**
+
+| `kind` | Callback signature | Return value |
+| --- | --- | --- |
+| `request` | `(req) => void` | None |
+| `response` | `(req, res) => void` | None |
+| `wsConnect` | `(ctx) => object \| void` | `{ deny?: boolean, reason?: string }` |
+| `wsMessage` | `(ctx, msg) => object \| void` | `{ type?: number, data?: any, drop?: boolean }` |
+| `wsSend` | `(ctx, msg) => object \| void` | `{ type?: number, data?: any, drop?: boolean }` |
+| `wsClose` | `(ctx) => void` | None |
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("request", "/api/*", (req) => {
+    req.headers["x-plugin"] = "status-extension";
+  });
+
+  server.hook("response", "GET /api/version", (req, res) => {
+    res.headers["x-version-hooked"] = "1";
+  });
+}
+```
+
+The HTTP hook matcher, execution order, and error behavior, as well as the WebSocket hook context and frame handling rules, are described below.
+
+#### 5.4.1 `request` Hook
+
+**Description:** Modifies a request before the business handler runs.
+
+**Registration:** `server.hook("request", fn)` or `server.hook("request", matcher, fn)`.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `req` | `Request` | Mutable request object. |
+
+**`Request` fields:**
+
+| Field | Type | Writable | Description |
+| --- | --- | --- | --- |
+| `method` | `string` | Yes | Request method. |
+| `url` | `string` | Yes | Request URI, including the query string. |
+| `headers` | `Record<string,string \| string[]>` | Yes | Request headers with lowercase keys. |
+| `query` | `Record<string,string>` | No | Parsed query parameters. Changing this object does not write back to the URL. |
+| `body` | `string` | Yes | Request body text. |
+| `context` | `HookContext` | No | Network information. |
+
+**`HookContext` fields:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `remote_ip` | `string` | Uses the first `X-Forwarded-For` entry, then `X-Real-IP`, then the host from `RemoteAddr`. |
+| `user_agent` | `string` | User-Agent header. |
+
+**Return value:** None. Direct changes to `req.method`, `req.url`, `req.headers`, and `req.body` take effect.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("request", "POST /api/items/*", (req) => {
+    req.headers["x-plugin-request"] = "1";
+    req.url = req.url.replace("old=1", "old=0");
+    req.body = req.body.replaceAll("foo", "bar");
+  });
+}
+```
+
+When a request matches the matcher, the request body is read and buffered. Requests that do not match skip both the hook and buffering. If the request body exceeds `permissions.maxHTTPBodyBytes`, the server returns `413`.
+
+#### 5.4.2 `response` Hook
+
+**Description:** Modifies response status, headers, and body after the business handler returns.
+
+**Registration:** `server.hook("response", fn)` or `server.hook("response", matcher, fn)`.
+
+**Parameters:**
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `req` | `Request` | Same request object as in 5.4.1. In a response hook, `body` is `""`. |
+| `res` | `Response` | Mutable response object. |
+
+**`Response` fields:**
+
+| Field | Type | Writable | Description |
+| --- | --- | --- | --- |
+| `statusCode` | `number` | Yes | HTTP status code. |
+| `statusMessage` | `string` | Yes | Currently always an empty string. |
+| `headers` | `Record<string,string \| string[]>` | Yes | Response headers with lowercase keys. |
+| `body` | `string` | Yes | Response body text. |
+
+**Return value:** None. Direct changes to `res` take effect.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("response", "/api/version", (req, res) => {
+    res.statusCode = 200;
+    res.headers["x-plugin-response"] = "1";
+    res.body = res.body.replace("Komari", "Komari + Plugin");
+  });
+}
+```
+
+If the body changes, the original `Content-Length` is removed. Once the internal response buffer limit is reached, the response passes through directly and response hooks can no longer rewrite it. A streaming response enters pass-through mode after the first `Flush()`, after which hooks no longer rewrite it.
+
+#### 5.4.3 Hook Matcher
+
+**Formats:**
+
+```text
+"METHOD /path"
+"/path"
+"/path/*"
+```
+
+**Rules:**
+
+| Rule | Description |
+| --- | --- |
+| Matcher omitted | Matches every request. |
+| `"METHOD /path"` | Matches the specified HTTP method and exact path. |
+| `"/path"` | Matches the exact path for any HTTP method. |
+| `"/path/*"` | Matches `/path` and every descendant path. |
+| `"/*"` | Matches every path. |
+
+Path comparison is case-insensitive. HTTP methods must be `GET`, `HEAD`, `POST`, `PUT`, `PATCH`, `DELETE`, or `OPTIONS`. If the method in `"METHOD..."` is not recognized, the whole string is treated as a path and fails because it does not start with `/`.
+
+#### 5.4.4 HTTP Hook Execution and Errors
+
+- Multiple request hooks run in registration order, and each hook sees the request modifications made by the previous hook.
+- Multiple response hooks run in registration order, and each hook sees the response modifications made by the previous hook.
+- When a request hook reaches `timeout`, the request returns `500`. When a response hook reaches `timeout`, the error is logged and the original response is sent. Either hook may continue running after the timeout, and later side effects are not guaranteed to be rolled back.
+- If a request hook throws, the request returns `500 plugin request hook failed`. If a response hook throws, the error is logged and the original response is sent.
+- WebSocket upgrade requests bypass `request` and `response` hooks and use the connection and frame hooks beginning in 5.4.5.
+
+#### 5.4.5 WebSocket Hooks
+
+WebSocket hooks share the `allowHooks` permission with HTTP hooks. Every upgrade is a GET request, so WebSocket matchers accept only paths:
+
+```js
+server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
+  return { data: "replaced" };
+});
+```
+
+#### 5.4.6 Common `ctx` Object
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `path` | `string` | WebSocket endpoint path. |
+| `connId` | `number` | Connection ID. |
+| `remoteIp` | `string` | Remote IP address. |
+| `userAgent` | `string` | User-Agent header. |
+| `clientUuid` | `string` | Client UUID. Omitted when empty. |
+
+#### 5.4.7 `wsConnect`
+
+**Callback:** `(ctx) => object | void`
+
+**Return value:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `deny` | `boolean` | When `true`, reject the connection. |
+| `reason` | `string` | Rejection reason. |
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("wsConnect", "/api/clients/v2/rpc", (ctx) => {
+    if (ctx.remoteIp === "203.0.113.9") {
+      return {
+        deny: true,
+        reason: "blocked by plugin"
+      };
+    }
+  });
+}
+```
+
+The first hook returning `deny: true` rejects the connection. Returning `undefined`, `null`, or an object without `deny` allows the connection.
+
+#### 5.4.8 `wsMessage`
+
+**Callback:** `(ctx, msg) => object | void`
+
+**Inbound `msg`:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `type` | `number` | WebSocket frame type. |
+| `data` | `string \| ArrayBuffer` | String for a text frame, ArrayBuffer for a binary frame. |
+| `connId` | `number` | Connection ID. |
+| `path` | `string` | Endpoint path. |
+
+**Return value:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `type` | `number` | Replacement frame type. |
+| `data` | `string \| ArrayBuffer \| Buffer \| Uint8Array` | Replacement frame payload. |
+| `drop` | `boolean` | When `true`, drop the frame. This takes precedence over `type` and `data`. |
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("wsMessage", "/api/rpc2", (ctx, msg) => {
+    if (typeof msg.data === "string" && msg.data.includes('"blocked"')) {
+      return { drop: true };
+    }
+    return { data: msg.data };
+  });
+}
+```
+
+Multiple `wsMessage` hooks run in registration order as a chain. Each hook sees the frame produced by the previous hook. Oversized frames pass through directly.
+
+#### 5.4.9 `wsSend`
+
+**Callback:** `(ctx, msg) => object | void`
+
+Its parameters, return shape, and chaining rules are the same as `wsMessage`, but it applies to frames sent from the server to the client.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("wsSend", "/api/clients/v2/rpc", (ctx, msg) => {
+    if (typeof msg.data === "string") {
+      return { data: msg.data.replace("old", "new") };
+    }
+  });
+}
+```
+
+#### 5.4.10 `wsClose`
+
+**Callback:** `(ctx) => void`
+
+Called once when the connection ends. Its return value is ignored.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.hook("wsClose", "/api/clients/v2/rpc", (ctx) => {
+    console.log("websocket closed: " + ctx.connId);
+  });
+}
+```
+
+#### 5.4.11 WebSocket Hook Limits
+
+- `wsMessage` and `wsSend` allow at most 8 MiB per frame. Larger frames skip every hook and pass through unchanged.
+- Each frame-level hook waits at most one second. After a timeout, the event is logged and the frame passes through unchanged.
+- Connection-level hooks use `permissions.timeout`.
+- After 16 consecutive dropped frames, the read loop ends with an error.
+- If the runtime closes, a hook times out, or a hook throws, the connection or frame continues with safe pass-through behavior.
+
+### 5.5 `server.injectHTML(head, body)`
+
+**Description:** Injects HTML fragments into every `text/html` response. `head` is inserted before `</head>`, and `body` is inserted before `</body>`.
+
+**Permission:** `allowHTMLInject`.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `head` | `string` | Yes | Fragment inserted before `</head>`. Pass an empty string when unused. |
+| `body` | `string` | Yes | Fragment inserted before `</body>`. Pass an empty string when unused. |
+
+**Return value:** `undefined`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.injectHTML(
+    '<link rel="stylesheet" href="/api/plugin/status-extension/assets/panel.css">',
+    '<script src="/api/plugin/status-extension/assets/panel.js"></script>'
+  );
+}
+```
+
+Injection applies to every HTML page, including admin and terminal pages. Responses larger than the internal HTML buffer limit are not injected.
+
+### 5.6 `server.cron(expr, fn)`
+
+**Description:** Runs a callback on the plugin event loop according to a cron expression.
+
+**Permission:** Granted by default; no manifest declaration is required.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `expr` | `string` | Yes | A 5-field or 6-field cron expression, or `@every <duration>`. |
+| `fn` | `() => void` | Yes | Scheduled callback. Its return value does not affect scheduling. |
+
+**Return value:** `undefined`.
+
+**Expression formats:**
+
+| Format | Fields |
+| --- | --- |
+| 5 fields | `minute hour day-of-month month day-of-week` |
+| 6 fields | `second minute hour day-of-month month day-of-week` |
+| Interval | `@every 30s`, `@every 1m`, `@every 1h` |
+
+Fields support `*`, `*/n`, `a-b`, `a-b/n`, comma-separated lists, and specific numbers. In `day-of-week`, `7` is equivalent to `0`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.cron("*/5 * * * *", () => {
+    console.log("every five minutes");
+  });
+
+  server.cron("@every 30s", () => {
+    console.log("every thirty seconds");
+  });
+}
+```
+
+Cron jobs registered by a plugin are cancelled when the plugin is unloaded.
+
+### 5.7 `server.registerRPC(method, handler)`
+
+**Description:** Registers a plugin-owned RPC method.
+
+**Permission:** Granted by default; no manifest declaration is required.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `method` | `string` | Yes | RPC method name. It cannot be empty or start with `rpc.`. |
+| `handler` | `(params) => any` | Yes | RPC handler. It receives the raw `params` and returns a synchronously JSON-serializable value. |
+
+**Return value:** `undefined`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.registerRPC("plugin:statusEcho", (params) => {
+    return {
+      echo: params,
+      at: new Date().toISOString()
+    };
+  });
+}
+```
+
+A normal `Error` thrown by the handler becomes JSON-RPC `-32603`. To return a business error code, attach `code` and `data` to the Error:
+
+```js
+const server = require("server");
+
+function load() {
+  server.registerRPC("plugin:statusFail", () => {
+    const error = new Error("status unavailable");
+    error.code = -32051;
+    error.data = { retryable: true };
+    throw error;
+  });
+}
+```
+
+See section 10 for the invocation entry point and permission rules.
+
+### 5.8 `server.getConfig()`
+
+**Description:** Reads the saved plugin configuration and merges it with defaults declared in the manifest.
+
+**Permission:** Granted by default; no manifest declaration is required.
+
+**Parameters:** None.
+
+**Return value:** `Promise<Record<string, any>>`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/config", async (req, res) => {
+    const config = await server.getConfig();
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify(config));
+  });
+}
+```
+
+For example, if the configuration contains `message` and `enabled`, the return shape is:
+
+```json
+{
+  "message": "hello",
+  "enabled": true
+}
+```
+
+## 6. Plugin Pages
+
+### 6.1 Admin iframe Pages
+
+**Description:** An iframe page with `visibility: "admin"` is loaded by the admin navigation.
+
+**File route:** `GET /api/admin/plugin/:short/*filepath`
+
+**Authentication:** Administrator.
+
+**Path parameters:**
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `short` | `string` | Plugin short name. |
+| `filepath` | `string` | File path inside the plugin directory. |
+
+**Return value:** File contents. Returns `404` if the file is missing, the path is invalid, or the plugin is not installed.
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/status-extension/pages/admin.html" \
+  -H "Cookie: $COOKIE"
+```
+
+Resources from the same origin in `pages/admin.html` can use the same prefix:
+
+```html
+<link rel="stylesheet" href="/api/admin/plugin/status-extension/pages/admin.css">
+<script src="/api/admin/plugin/status-extension/pages/admin.js"></script>
+```
+
+### 6.2 Public iframe Pages
+
+**Description:** A page with `visibility: "public"` and `type: "iframe"` can be accessed without authentication.
+
+**File route:** `GET /api/plugin/:short/*filepath`
+
+**Authentication:** None.
+
+**Path parameters:**
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `short` | `string` | Plugin short name. |
+| `filepath` | `string` | File path inside the directory of the public page. |
+
+**Return value:** File contents. Returns `404` if the plugin is disabled, the file is outside the public page directory, or the path is invalid.
+
+**Example:**
+
+```bash
+curl -s "http://127.0.0.1:8080/api/plugin/status-extension/pages/public.html"
+```
+
+If the public page is `pages/public.html`, relative resources such as `pages/public.js` and `pages/public.css` in the same directory are also accessible. Files outside that directory, such as `script.js` or an admin page, and paths containing `../` are not accessible.
+
+### 6.3 `redirect` Pages
+
+A page with `type: "redirect"` is not served from the plugin's static file route. The admin UI navigates to the internal path specified by `url`. The URL must start with `/`, must not start with `//`, and cannot contain backslashes, a URL scheme, or a `..` path segment.
+
+**Example:**
+
+```json
+{
+  "title": "Open dashboard",
+  "type": "redirect",
+  "url": "/admin/dashboard",
+  "visibility": "admin"
+}
+```
+
+## 7. Plugin Configuration
+
+### 7.1 Reading Configuration in a Plugin
+
+Use `server.getConfig()` inside the plugin. See 5.8. The result merges saved values with manifest defaults.
+
+### 7.2 Reading Configuration Declarations and Values as an Administrator
+
+**Interface:** `GET /api/admin/plugin/configuration?short=<short>`
+
+**Authentication:** Administrator.
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `short` | `string` | Yes | Plugin short name. |
+
+**Return value:** Standard envelope. `data.configuration` is the manifest configuration declaration, and `data.data` is the resolved saved values.
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/configuration?short=status-extension" \
+  -H "Cookie: $COOKIE"
+```
+
+Example response:
+
+```json
+{
+  "status": "success",
+  "data": {
+    "configuration": {
+      "type": "managed",
+      "data": [
+        {
+          "key": "message",
+          "name": "Message",
+          "type": "string",
+          "default": "hello"
+        }
+      ]
+    },
+    "data": {
+      "message": "hello"
+    }
+  }
+}
+```
+
+### 7.3 Saving Configuration as an Administrator
+
+**Interface:** `POST /api/admin/plugin/configuration`
+
+**Authentication:** Administrator.
+
+**Request body:**
+
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `file` | string | required for iframe | Relative path inside the plugin directory, rendered as an iframe |
-| `title` | string \| i18n | Yes | Page title |
-| `icon` | string | No | Icon, relative path inside the plugin directory |
-| `type` | `"iframe"` \| `"redirect"` | No | Default `iframe` |
-| `url` | string | required for redirect | Internal site path |
-| `visibility` | `"admin"` \| `"public"` | No | Default `admin` |
+| `short` | `string` | Yes | Plugin short name. |
+| `data` | `object` | No | Complete configuration value object. When omitted or `null`, an empty object is saved. |
 
-| visibility | type | Access path | Auth |
+**Return value:** Standard success envelope. If the plugin is enabled, it is reloaded immediately after saving.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/plugin/configuration" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "short": "status-extension",
+    "data": {
+      "message": "from-admin",
+      "enabled": true
+    }
+  }'
+```
+
+If saving succeeds but the reload fails, the configuration has already been written and the call returns an error containing `plugin configuration saved but reload failed`.
+
+## 8. Plugin-owned RPC
+
+### 8.1 Registration
+
+Plugins register methods through `server.registerRPC(method, handler)`. See 5.7.
+
+### 8.2 Invocation
+
+Registered methods enter the Komari RPC registry. They can be called through the existing `/api/rpc2` endpoint or by another plugin through `server.call()`. This document does not repeat the RPC request envelope, error codes, or authentication details; see the [RPC documentation](../rpc.md).
+
+**HTTP example:**
+
+```bash
+curl -s -X POST "http://127.0.0.1:8080/api/rpc2" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "plugin:statusEcho",
+    "params": {
+      "text": "hello"
+    },
+    "id": 1
+  }'
+```
+
+**Calling another plugin's method:**
+
+```js
+const result = await server.call("plugin:statusEcho", {
+  text: "hello"
+});
+```
+
+### 8.3 Rules
+
+- The method name cannot be empty and cannot start with `rpc.`.
+- Registering the same method more than once during a single load of the same plugin is ignored.
+- The handler receives one raw `params` value and does not automatically unwrap named parameters.
+- The handler is called synchronously. Returning a Promise does not wait for its asynchronous result.
+- The return value must be JSON-serializable. Export failures such as circular references return `-32603`.
+- The handler times out after `permissions.timeout` seconds and returns `-32011`.
+- When the plugin unloads, its methods are unregistered. Later calls return `-32601`.
+- If a method name conflicts with an existing method, registration fails and plugin loading fails.
+- Plugin methods still go through the unified ACL. Registering a `plugin:*` method without an additional permission declaration requires the administrator role.
+
+## 9. Plugin Management HTTP Interfaces
+
+This section documents the HTTP routes exposed by plugin management. Except for chunked uploads and the market, most routes bridge to `admin:*` RPC methods. Their response shape depends on the target RPC result, which is not repeated here.
+
+All interfaces require administrator authentication. "Standard envelope" means a successful response shaped like `{ "status": "success", "message": "...", "data": ... }`, while errors use `{ "status": "error", "message": "..." }` with an appropriate HTTP status.
+
+### 9.1 Plugin List
+
+**Interface:** `GET /api/admin/plugin/list`
+
+**Path parameters:** None.
+
+**Query parameters:** None.
+
+**Request body:** None.
+
+**Return value:** Standard envelope whose `data` is `PluginInfo[]`.
+
+**`PluginInfo`:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | `string \| Record<string,string>` | Manifest name. |
+| `short` | `string` | Plugin short name. |
+| `description` | `string \| Record<string,string>` | Manifest description. |
+| `author` | `string \| Record<string,string>` | Manifest author. |
+| `version` | `string` | Version. |
+| `url` | `string` | Plugin URL. |
+| `icon` | `string` | Relative icon path. |
+| `komari` | `string` | Server version constraint. |
+| `entry` | `string` | Entry script. |
+| `permissions` | `PluginPermissions` | Permission object. |
+| `configuration` | `Configuration` | Configuration declaration. |
+| `pages` | `PluginPage[]` | Page declarations. Omitted when absent. |
+| `enabled` | `boolean` | Whether the plugin is persistently enabled. |
+| `running` | `boolean` | Whether the plugin is currently running. |
+| `last_error` | `string` | Latest load error, or an empty string. |
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/list" \
+  -H "Cookie: $COOKIE"
+```
+
+### 9.2 Enabling or Disabling a Plugin
+
+**Interface:** `POST /api/admin/plugin/enabled`
+
+**Authentication:** Administrator.
+
+**Request body:**
+
+| Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `admin` | `iframe` | `/api/admin/plugin/<short>/<file>` | admin login required |
-| `public` | `iframe` | `/api/plugin/<short>/<file>` | no auth (public) |
-| `redirect` | any | navigates to an internal site path | — |
+| `short` | `string` | Yes | Plugin short name. |
+| `enabled` | `boolean` | No | `true` enables and `false` disables. Omitted values are treated as `false`. |
+| `approved` | `boolean` | No | Whether to approve the current permission set. It is `false` when omitted and approval is required. |
 
-- `public` pages require the plugin to be **enabled**, can only serve files under a declared public page's directory, and are rendered in a sandboxed iframe.
-- A `redirect` `url` must be a same-origin internal path: starts with `/`, must not start with `//`, and must not contain backslashes, URL schemes (e.g. `http:`), or `..` segments.
+**Return value:** Standard success envelope. When permissions are not approved, `data` is `{ "requires_approval": true }`. After approving, retry with `approved: true`.
 
-::: tip Follow the parent page's theme & language
-Iframe pages can read the parent document's `<html>` element to sync theme and language:
+**Example:**
 
-- **Dark/light theme**: `window.parent.document.documentElement.classList.contains("dark")` tells you whether the dark theme is active.
-- **Current language**: `window.parent.document.documentElement.lang` gives the active locale (e.g. `zh-CN`, `en`).
-
-Use a `MutationObserver` on the `class` / `lang` attributes to react to theme and language switches live, instead of checking only once on load.
-:::
-
-## Interfaces
-
-Plugins get their bridge to the host via `require("server")` (a **native module** injected by the plugin system) and define lifecycle hooks via global `load()` / `unload()`.
-
-| Method | Description | Permission |
-| --- | --- | --- |
-| `server.route(method, path, handler)` | Register an HTTP route on the host engine | `allowRoutes` |
-| `server.static(path, dir, opts)` | Mount a static folder from the plugin directory, optional SPA fallback | `allowRoutes` |
-| `server.hook(kind, matcher?, fn)` | Register request/response/WebSocket hooks | `allowHooks` |
-| `server.injectHTML(head, body)` | Embed CSS/JS into every HTML page | `allowHTMLInject` |
-| `server.call(method, params...)` | Call system RPC with admin authority | `allowSystemRPC` |
-| `server.registerRPC(method, handler)` | Register a plugin-owned RPC method | Always granted |
-| `server.cron(expr, handler)` | Run handler on a cron schedule | Always granted |
-| `server.getConfig()` | Read configuration (merged with defaults) | Always granted |
-
-### server.call
-
-```js
-const result = await server.call("common:getNodes");
-const status = await server.call("common:getNodesLatestStatus", { uuid: "..." });
+```bash
+curl -s -X POST "$BASE/api/admin/plugin/enabled" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "short": "status-extension",
+    "enabled": true,
+    "approved": true
+  }'
 ```
 
-- Param marshalling: **0 args** → `null`; **1 arg** → passed as-is; **N args** → marshalled into a positional array.
-- On failure the Promise rejects with an Error carrying JSON-RPC error fields: `err.code` (integer), `err.message`, `err.data` (optional).
-- Runs with `RoleAdmin`, equivalent to an admin operating the panel — including sensitive operations such as `admin:exec`. Requires `allowSystemRPC`.
-- Available methods cover the `common:` / `public:` / `admin:` / `client:` namespaces (e.g. `common:getNodes`, `admin:getTasks`, `admin:listPlugins`, `admin:getPluginLogs`). For the full inventory see the [RPC documentation](../rpc).
+### 9.3 Getting Plugin Logs
 
-### server.route
+**Interface:** `GET /api/admin/plugin/logs?short=<short>`
 
-```js
-server.route("GET", "/plug", async (req, res) => {
-  res.setHeader("Content-Type", "application/json");
-  res.end(JSON.stringify({ ok: true }));
-});
+**Authentication:** Administrator.
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `short` | `string` | Yes | Plugin short name. |
+
+**Return value:** Standard envelope whose `data.logs` is the log string.
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/logs?short=status-extension" \
+  -H "Cookie: $COOKIE"
 ```
 
-- `method` is uppercased automatically and must not be empty; `path` must start with `/`.
-- `req`: `method` / `url` (with query string) / `headers` (lower-cased keys, multi-values as arrays) / `query` / `body` (fully read, limited by `maxHTTPBodyBytes`) / `context` (identity and origin info).
-- `res`: `statusCode` / `statusMessage` / `streaming` / `isAborted()` / `setHeader` / `getHeader` / `removeHeader` / `write` / `end`.
-- **You must call `res.end()`**, otherwise the client receives **504 `plugin route handler timed out`** after `timeout`.
-- Streaming (SSE): set `res.streaming = true` so each `write()` is flushed immediately; `isAborted()` returns `true` when the client disconnects.
+Example response:
 
-### server.static
-
-```js
-server.static("/ui", "dist");
-server.static("/app", "dist", { spa: true }); // SPA mode
-```
-
-- Serves `GET` / `HEAD`; the mount path itself returns `index.html`, and a directory resolves to its own `index.html`.
-- With `{ spa: true }`, requests that resolve to no file fall back to the folder root `index.html` (client-side routing refreshes no longer 404); real files always win.
-- Traversal requests (`..`) are rejected with 404; file resolution stays confined to `dir`.
-
-### server.hook
-
-```js
-server.hook("request", (req) => {
-  req.headers["x-hooked"] = "yes";
-});
-
-server.hook("response", "/api/*", (req, res) => {
-  res.statusCode = 201;
-  res.body = res.body + "|hooked";
-});
-```
-
-- `kind`: `"request"` / `"response"` / `"wsConnect"` / `"wsMessage"` / `"wsSend"` / `"wsClose"` (case-insensitive).
-- `matcher` (optional): `"/api/foo"` (exact), `"/api/*"` (subtree), `"POST /api/foo"` (method + path); the ws kinds accept path-only matchers.
-- Request hooks can mutate `method` / `url` / `headers` / `body`; response hooks can mutate `statusCode` / `statusMessage` / `headers` / `body` (rewriting the body drops the original `Content-Length`).
-- WebSocket hooks: `wsConnect` returns `{ deny, reason }` to reject a connection; `wsMessage` / `wsSend` return `{ drop: true }` to drop a frame or `{ type, data }` to replace it; `wsClose` notifies connection teardown. Frame size cap is 8 MiB, and the frame callback wait is capped at 1 second. Dropping frames can break the protocol — use with care.
-- Streaming responses (SSE) or responses larger than 32 MiB pass through untouched; hooks cannot rewrite them.
-
-#### WebSocket hook example
-
-The ws kinds target **every WebSocket endpoint** on the server (agent reporting, the web RPC2 channel, terminal forwarding, and the online list):
-
-```js
-// Connection-level: runs at upgrade time; undefined = allow, { deny, reason } = reject
-server.hook("wsConnect", (ctx) => {
-  if (ctx.path === "/api/clients/v2/rpc" && ctx.remoteIp.startsWith("10.")) {
-    return { deny: true, reason: "intranet agents must use the private endpoint" };
+```json
+{
+  "status": "success",
+  "data": {
+    "logs": "[plugin] loading status-extension\n[plugin] loaded status-extension\n"
   }
-});
-
-// Frame-level: every inbound (client → server) frame
-server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
-  if (msg.type !== 1) return;                 // 1 = text, 2 = binary
-  const req = JSON.parse(msg.data);
-  if (req.method === "agent.basicInfo") {
-    req.params.info.ipv4 = "1.2.3.4";         // rewrite the agent-reported public IP
-    return { data: JSON.stringify(req) };     // replace the frame
-  }
-  // return { drop: true };                   // drop the frame (can break the protocol; use with care)
-});
-
-// Frame-level: every outbound (server → client) frame
-server.hook("wsSend", (ctx, msg) => {
-  return { type: msg.type, data: msg.data };  // returning the same values = pass through
-});
-
-// Connection teardown notification (the return value is ignored)
-server.hook("wsClose", (ctx) => {
-  console.log("connection closed", ctx.connId);
-});
+}
 ```
 
-- `ctx` (connection context, built once at connect; frame callbacks share it): `path` (endpoint path, e.g. `/api/clients/v2/rpc`), `connId` (unique connection ID), `remoteIp` (TCP source IP), `userAgent`, `clientUuid` (resolved agent uuid; available at upgrade for v2, may be `undefined` for v1 until the first frame).
-- `msg` (frame object): `type` (`1` = text, `2` = binary), `data` (string for text, `ArrayBuffer` for binary), `connId`, `path`.
-- Multiple hooks run **in registration order as a chain** — each hook sees the previous hook's replacement, and `drop` wins over later hooks. On timeout or a hook error the frame **passes through unchanged** and the plugin log records it. Unloading a plugin removes its ws hooks; established connections revert to pass-through.
+### 9.4 Deleting a Plugin
 
-### server.injectHTML
+**Interface:** `POST /api/admin/plugin/delete`
 
-```js
-server.injectHTML(
-  "<style>.plugin-badge{color:red}</style>",
-  '<script src="/api/mjpeg_live.js"></script>'
-);
+**Authentication:** Administrator.
+
+**Request body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `short` | `string` | Yes | Plugin short name. |
+
+**Return value:** Standard success envelope. Returns an error when the plugin is not installed.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/plugin/delete" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{"short":"status-extension"}'
 ```
 
-- The `head` fragment is inserted before `</head>`, the `body` fragment before `</body>` (case-insensitive).
-- Applies to **all** HTML pages (incl. admin, terminal, login, and public pages); non-HTML responses, responses larger than 32 MiB, streaming responses, and WebSocket upgrade requests pass through without injection.
+Deletion unloads the runtime and removes `data/plugin/<short>`, `data/plugin-data/<short>`, and the persisted state.
 
-### server.registerRPC
+### 9.5 Installing a Plugin with Chunked Upload
 
-```js
-server.registerRPC("plugin:greet", (params) => {
-  return { echo: params, from: "example" };
-});
+Plugin installation uses the shared archive upload interface with `purpose` set to `plugin`.
+
+#### 9.5.1 Initialization
+
+**Interface:** `POST /api/admin/upload/init`
+
+**Request body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `purpose` | `string` | Yes | Must be `"plugin"`. |
+| `filename` | `string` | No | ZIP filename. The plugin installation flow does not depend on this field. |
+| `size` | `integer` | Yes | Total file size in bytes. It must be greater than `0` and no larger than the backup archive limit. |
+
+**Return value:** Standard envelope. `data.upload_id` is a UUID and `data.chunk_size` is 5 MiB.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/upload/init" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "purpose": "plugin",
+    "filename": "status-extension.zip",
+    "size": 123456
+  }'
 ```
 
-- The method name must not be empty and must not start with `rpc.` (reserved prefix); prefer the `plugin:<name>:<action>` naming convention to avoid clashes with system methods.
-- Thrown JS `Error`s map to JSON-RPC errors (`err.code` / `err.message` / `err.data` are propagated).
-- Always granted; re-registering within one load is a no-op, and methods are unregistered on unload.
+#### 9.5.2 Uploading a Chunk
 
-### server.cron
+**Interface:** `POST /api/admin/upload/chunk`
 
-```js
-server.cron("0 0 9 * * *", async () => { /* Runs every day at 09:00 */ });
-server.cron("@every 1m", () => { /* Runs every minute */ });
+**Content-Type:** `multipart/form-data`
+
+**Form fields:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `upload_id` | `string` | Yes | UUID returned by initialization. |
+| `chunk_index` | `integer` | Yes | Zero-based chunk index. |
+| `chunk_data` | `file` | Yes | Chunk bytes. Every chunk must be exactly 5 MiB except the final chunk. |
+
+**Return value:** Standard envelope. `data` contains `received: true` and `chunk_index`.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/upload/chunk" \
+  -H "Cookie: $COOKIE" \
+  -F "upload_id=<upload-id>" \
+  -F "chunk_index=0" \
+  -F "chunk_data=@chunk-0.bin"
 ```
 
-- Supports 5-field / 6-field cron expressions or `@every <duration>` (e.g. `@every 1m`, `@every 30s`); fields support `*`, `*/n`, `a-b`, and comma lists.
-- An invalid expression fails the load (error written to `last_error`, plugin auto-disabled); handler errors are logged and do not stop future fires.
+#### 9.5.3 Merging and Installing
 
-### server.getConfig
+**Interface:** `POST /api/admin/upload/merge`
 
-```js
-const config = await server.getConfig();
-console.log(config.interval); // defaults already merged
+**Request body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `upload_id` | `string` | Yes | UUID returned by initialization. |
+
+**Return value:** Standard envelope. The server currently returns `插件上传成功` as `message` (Chinese for "plugin uploaded successfully"), and `data` is the installed `Plugin` manifest.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/upload/merge" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{"upload_id":"<upload-id>"}'
 ```
 
-Returns a Promise resolving to a `{ [key]: value }` object. Merge rules: see [Managed Configuration](../managed-config#default-value-merge-rules). Always granted.
+#### 9.5.4 Cancelling an Upload
 
-## Compatibility
+**Interface:** `POST /api/admin/upload/cancel`
 
-Plugins run in a sandboxed runtime built on [goja](https://github.com/dop251/goja): one dedicated VM + event loop per plugin, with CommonJS loading, Node-style modules, and web APIs — but it is **not a browser and not full Node.js**. Interface status is one of `Available` / `Partial` / `Fixed value or throws` / `Not implemented`. This section only describes what the runtime **actually provides** — a same-named API does not imply identical edge-case behavior with browsers or Node.js.
+**Request body:**
 
-### How manifest permissions affect the runtime
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `upload_id` | `string` | Yes | UUID returned by initialization. |
 
-| Manifest field | Runtime effect |
-| --- | --- |
-| `node: true` | Injects `Buffer` / `process` / `global` / `__dirname` / `__filename` and the events/path/os/process/fs/child_process/net/http/stream/crypto modules |
-| `allowExec: true` | `child_process` and `process.kill()` become available |
-| `allowListen: true` | `net` / `http` Servers can bind local ports (default `127.0.0.1`) |
-| `allowAllFileAccess: true` | `require` and `fs` can access paths outside the plugin directory |
-| `maxHTTPBodyBytes` / `maxChildOutputBytes` / `timeout` | Buffer cap / child output cap / per-turn timeout (default 30 s) |
+**Return value:** Standard success envelope.
 
-### Web APIs & base interfaces
+**Example:**
 
-- **fetch**: `fetch(input, init)` plus `Headers`, `EventTarget`, `AbortController`, `AbortSignal` (incl. static `abort/timeout/any`), `Blob`, `File`, `FormData`, `Request`, `Response`. All bodies are **fully buffered** (`Response.body` is always `null`, 32 MiB cap); no cookies, CORS, same-origin policy, or caching; redirects only support `follow` / `manual` / `error`.
-- **XMLHttpRequest**: `open` / `setRequestHeader` / `getResponseHeader` / `getAllResponseHeaders` / `send` / `abort`, `responseType` (`""`/`text`/`json`/`arraybuffer`/`blob`/`document`), `timeout`, and the standard events. `responseXML` is always `null`; synchronous mode `open(..., false)` blocks the event loop and forbids a non-zero `timeout` or non-empty `responseType`.
-- **ECMAScript**: standard Promise/async-await, Array, Map/Set, TypedArray, JSON, `eval()`, `queueMicrotask`, `setTimeout` / `setInterval` / `setImmediate`. **No** `for await...of` or async generators (call `[Symbol.asyncIterator]().next()` manually in a loop); timer handle `ref/unref/refresh/hasRef` is not implemented.
-- **console**: `assert / debug / error / exception / info / log / trace / warn` with basic `%s %d %i %f %o %O %c %%` formatting; `table`, `dir`, `time/timeEnd`, `count`, `group`, `clear` etc. are not implemented. Output goes to the plugin log buffer (64 KiB ring).
+```bash
+curl -s -X POST "$BASE/api/admin/upload/cancel" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{"upload_id":"<upload-id>"}'
+```
 
-### Node compatibility modules
+### 9.6 Plugin Market Sources
 
-| Module | Available | Notes |
+#### 9.6.1 Listing Sources
+
+**Interface:** `GET /api/admin/plugin/market/sources`
+
+**Request body:** None.
+
+**Return value:** Standard envelope whose `data` is `PluginMarketSource[]`.
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/market/sources" \
+  -H "Cookie: $COOKIE"
+```
+
+#### 9.6.2 Creating a Source
+
+**Interface:** `POST /api/admin/plugin/market/sources`
+
+**Request body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `string` | Yes | Source name. |
+| `url` | `string` | Yes | HTTP or HTTPS catalog URL. |
+| `enabled` | `boolean` | No | Whether the source is enabled. Defaults to `false`. |
+| `id` | `string` | No | Ignored. The server generates a new ID. |
+
+**Return value:** Standard success envelope whose `data` is the created `PluginMarketSource`.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/plugin/market/sources" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My catalog",
+    "url": "https://example.com/plugins/v1.json",
+    "enabled": true
+  }'
+```
+
+#### 9.6.3 Updating a Source
+
+**Interface:** `PUT /api/admin/plugin/market/sources/:id`
+
+**Path parameters:**
+
+| Parameter | Type | Description |
 | --- | --- | --- |
-| `buffer` | `Buffer.from/alloc/poolSize`, Uint8Array inheritance, `equals/toString/write`, BE/LE numeric reads/writes | No `node` permission needed; `concat/isBuffer/byteLength/compare/allocUnsafe*` etc. not implemented |
-| `url` | `URL` (partial), `URLSearchParams` (complete) | No `node` permission needed; legacy `parse/format/resolve` not implemented |
-| `util` | `util.format()` | No `node` permission needed; `inspect/promisify/types` not implemented |
-| `events` | Full `EventEmitter` (incl. static `listenerCount/once/on`) | Requires `node` |
-| `stream` | `Readable` / `Writable` / `Duplex` / `Transform` / `PassThrough` / `pipeline` / `finished`, real backpressure | No Web Streams (`stream/web` not implemented); `net.Socket` is not integrated with streams |
-| `fs` | Sync / callback / `fs.promises` / `createReadStream` / `createWriteStream` | Sandboxed to the plugin directory and `__storageDir__`; `watch/cp/link/opendir/statfs` etc. not implemented |
-| `path` | `sep/normalize/isAbsolute/join/resolve/relative/...`, plus `posix`/`win32` | — |
-| `os` | `arch/platform/hostname/homedir/tmpdir/...` | Metrics report the **host machine**, not the plugin; `loadavg()` is zero on Windows |
-| `process` | `env/argv/pid/cwd/memoryUsage/...` | `versions.node` fixed `"0.0.0-goja"`; `kill()` requires `allowExec`; `exit()/abort()` only throw — they never exit Komari |
-| `child_process` | `spawn/exec/execFile` and Sync versions | Requires `allowExec`; `fork` throws; no IPC (`send()` reports not enabled) |
-| `net` | TCP `createServer/connect/createConnection/isIP`; Server `listen/close/address` | `listen` requires `allowListen` (default `127.0.0.1`); no UDP / TLS / Unix sockets |
-| `http` | `createServer/request/get`, `Agent`, `IncomingMessage`, `ServerResponse` | `listen` requires `allowListen`; no separate `https` module (but `fetch` and `http.request` can request HTTPS) |
-| `crypto` | Hashes / random / derivation (pbkdf2, scrypt) / symmetric (AES, ChaCha20-Poly1305) / signing (RSA, ECDSA, Ed25519) | `generateKeyPairSync`, `KeyObject`, `webcrypto` etc. not implemented |
+| `id` | `string` | Source ID. |
 
-### Common but not implemented
+**Request body:** Same as creating a source. The path parameter overrides `id` in the request body.
 
-| Category | Examples |
+**Return value:** Standard success envelope whose `data` is the updated source.
+
+**Example:**
+
+```bash
+curl -s -X PUT "$BASE/api/admin/plugin/market/sources/<source-id>" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated catalog",
+    "url": "https://example.com/plugins/v2.json",
+    "enabled": true
+  }'
+```
+
+#### 9.6.4 Deleting a Source
+
+**Interface:** `DELETE /api/admin/plugin/market/sources/:id`
+
+**Path parameters:**
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Source ID. |
+
+**Return value:** Standard success envelope.
+
+**Example:**
+
+```bash
+curl -s -X DELETE "$BASE/api/admin/plugin/market/sources/<source-id>" \
+  -H "Cookie: $COOKIE"
+```
+
+### 9.7 Plugin Market Catalog
+
+**Interface:** `GET /api/admin/plugin/market/catalog`
+
+**Query parameters:**
+
+| Parameter | Type | Required | Default | Description |
+| --- | --- | --- | --- | --- |
+| `refresh` | `boolean` | No | `false` | When `true`, bypass the cache. |
+
+**Return value:** Standard envelope. `data.plugins` is the merged plugin list and `data.sources` is the status of each source.
+
+**`PluginMarketPlugin`:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `name` | `string \| Record<string,string>` | Plugin name. |
+| `short` | `string` | Plugin short name. |
+| `description` | `string \| Record<string,string>` | Description. |
+| `version` | `string` | Version. |
+| `author` | `string \| Record<string,string>` | Author. |
+| `url` | `string` | Plugin page URL. |
+| `download` | `string` | ZIP download URL, or an empty string when no package is available. |
+| `sha256` | `string` | ZIP SHA-256, or an empty string when no package is available. |
+| `komari` | `string` | Server version constraint. |
+| `installable` | `boolean` | Whether an installable package exists and the version constraint is satisfied. |
+| `source_id` | `string` | Source ID. |
+| `source_name` | `string` | Source name. |
+
+**`sources[]`:**
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | Source ID. |
+| `name` | `string` | Source name. |
+| `url` | `string` | Source URL. |
+| `count` | `integer` | Number of plugins read from this source. |
+| `error` | `string` | Source read error. Omitted on success. |
+
+**Example:**
+
+```bash
+curl -s "$BASE/api/admin/plugin/market/catalog?refresh=true" \
+  -H "Cookie: $COOKIE"
+```
+
+### 9.8 Installing a Plugin from the Market
+
+**Interface:** `POST /api/admin/plugin/market/install`
+
+**Request body:**
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `source_id` | `string` | Yes | ID of an enabled market source. |
+| `short` | `string` | Yes | Short name of the plugin to install. |
+
+**Return value:** Standard success envelope whose `data` is the installed manifest.
+
+**Example:**
+
+```bash
+curl -s -X POST "$BASE/api/admin/plugin/market/install" \
+  -H "Cookie: $COOKIE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source_id": "official",
+    "short": "status-extension"
+  }'
+```
+
+The server fetches the catalog again, downloads the ZIP, validates its SHA-256, and confirms that the installed `short` and `version` match the catalog.
+
+## 10. Permissions, Limits, and Errors
+
+### 10.1 Permission Matrix
+
+| Interface | Permission |
 | --- | --- |
-| Browser DOM | `window`, `document`, `navigator`, `location`, storage, canvas |
-| Browser networking | `WebSocket`, `EventSource`, WebCrypto, Web Streams |
-| Module system | ESM `import/export`, dynamic `import()`, `require.resolve/cache/extensions/main` |
-| Node core modules | `https`, `tls`, `dns`, `dgram`, `zlib`, `worker_threads`, `cluster`, `readline`, `assert`, etc. |
-| Timers | handle `ref/unref/refresh/hasRef` |
-| Resource isolation | no per-plugin CPU/memory/network quotas; `process.memoryUsage()` measures the whole Komari process |
+| `server.route()` | `allowRoutes` |
+| `server.static()` | `allowRoutes` |
+| `server.hook()` | `allowHooks` |
+| `server.injectHTML()` | `allowHTMLInject` |
+| `server.call()` | `allowSystemRPC` |
+| `server.registerRPC()` | Granted by default |
+| `server.getConfig()` | Granted by default |
+| `server.cron()` | Granted by default |
+| File access inside the plugin directory | Granted by default |
+| File access outside the plugin directory | `allowAllFileAccess` |
+| `child_process` | `allowExec` and `node: true` |
+| Listening on a local port | `allowListen` and `node: true` |
 
-### Recommendations
+### 10.2 Time and Capacity Limits
 
-1. Prefer async APIs (Promise-based fs, async fetch, async child processes); synchronous XHR, sync fs, and `execSync` block the plugin's own event loop.
-2. Before adding npm/CommonJS packages, verify the Node core modules they depend on — pure JavaScript does not guarantee compatibility with this subset.
-3. Do not use "the name exists" as a capability check: many methods exist but return fixed values or throw.
-4. The plugin's `timeout` bounds every single execution; split long-running work into multiple async steps.
+| Item | Current value |
+| --- | --- |
+| Default execution timeout | 30 seconds |
+| Default HTTP body limit | 32 MiB |
+| Default child process output limit | 1 MiB |
+| HTTP hook response buffer limit | 32 MiB |
+| HTML injection buffer limit | 32 MiB |
+| WebSocket frame hook limit | 8 MiB |
+| WebSocket frame hook timeout | 1 second |
+| Consecutive WebSocket frame drops | 16 frames |
+
+### 10.3 Error Objects
+
+`server.call()` rejection:
+
+```js
+{
+  name: "Error",
+  message: "method not found",
+  code: -32601,
+  data: "optional detail"
+}
+```
+
+Error thrown by a `server.registerRPC()` handler:
+
+```js
+const error = new Error("boom");
+error.code = -32045;
+error.data = { detail: "x" };
+throw error;
+```
+
+Common JSON-RPC error codes:
+
+| Code | Meaning |
+| --- | --- |
+| `-32700` | Parse error |
+| `-32600` | Invalid request |
+| `-32601` | Method not found |
+| `-32602` | Invalid params |
+| `-32603` | Internal error |
+| `-32011` | Deadline exceeded |
+| `-32040` | Unauthenticated |
+| `-32041` | Permission denied |
+| `-32044` | Not found |
+| `-32045` | Already exists |
+| `-32051` | Unavailable |
+
+### 10.4 Lifecycle Cleanup
+
+| Resource | Behavior when the plugin unloads |
+| --- | --- |
+| Route slot registered by `server.route()` | Retained; requests return `404`. |
+| Static route slot registered by `server.static()` | Retained; requests return `404`. |
+| HTTP request and response hooks | Removed. |
+| WebSocket hooks | Removed. |
+| Fragments registered by `server.injectHTML()` | Removed. |
+| Jobs registered by `server.cron()` | Cancelled and removed. |
+| Methods registered by `server.registerRPC()` | Unregistered. |
+| Plugin-created timers, listeners, and processes | The runtime closes registered resources. The script should release them explicitly in `unload()`. |
