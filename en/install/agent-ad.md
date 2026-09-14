@@ -55,7 +55,7 @@ These parameters affect the install script and are not written into the agent ru
 | `--install-dir` | `/opt/komari` on Linux, `$Env:ProgramFiles\Komari` on Windows | Agent installation directory |
 | `--install-service-name` | `komari-agent` | System service name |
 | `--install-ghproxy` | none | GitHub proxy used to accelerate downloads |
-| `--install-version` | `latest` | Agent version to install |
+| `--install-version` | `latest` | Agent version to install; use `snapshot` to install the latest snapshot automatically |
 
 ## Examples
 

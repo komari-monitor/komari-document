@@ -34,7 +34,7 @@ git clone https://github.com/komari-monitor/komari-agent
 
 ## 构建前端静态文件
 
-Komari 的后端使用了 go-embed 功能将默认主题静态文件打包进二进制文件中。因此，在启动后端服务之前，<span style="color: red; font-weight: bold;">必须</span>先构建前端静态文件。（或塞一个假的 index.html ，总是要确保 `web/public/defaultTheme/dist` 目录存在且包含 `index.html` 文件）
+Komari 的后端使用 go-embed 将 `dist.tar.zst` 打包进二进制文件，并在启动时解压到内存。因此，在启动后端服务之前，<span style="color: red; font-weight: bold;">必须</span>先构建前端并生成归档。
 
 ```bash
 cd komari-web
@@ -42,11 +42,13 @@ npm install
 npm run build
 ```
 
-生成的静态文件位于 `dist` 目录下，将其复制到后端源码的 `web/public/defaultTheme/dist` 目录中；同时复制 `komari-theme.json`，用于后台读取默认主题元数据和可管理配置：
+生成的静态文件位于 `dist` 目录下，将其打包到后端源码的 `web/public/defaultTheme/dist.tar.zst`；同时复制 `komari-theme.json`，用于后台读取默认主题元数据和可管理配置：
 
 ```bash
-mkdir -p ../komari/web/public/defaultTheme/dist
-cp -r dist/* ../komari/web/public/defaultTheme/dist/
+mkdir -p ../komari/web/public/defaultTheme
+tar -cf /tmp/komari-dist.tar -C dist .
+zstd -19 -T0 -f /tmp/komari-dist.tar -o ../komari/web/public/defaultTheme/dist.tar.zst
+rm -f /tmp/komari-dist.tar
 cp komari-theme.json ../komari/web/public/defaultTheme/
 ```
 

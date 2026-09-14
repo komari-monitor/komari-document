@@ -85,7 +85,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iwr 'https://raw.git
 | `--install-dir` | `/opt/komari` (Linux)<br/>`$Env:ProgramFiles\Komari` (Windows) | 指定 Agent 安装目录 |
 | `--install-service-name` | `komari-agent` | 指定系统服务名称 |
 | `--install-ghproxy` | 无 | 指定 GitHub 代理地址,用于加速下载 |
-| `--install-version` | `latest` | 指定要安装的 Agent 版本 |
+| `--install-version` | `latest` | 指定要安装的 Agent 版本；设为 `snapshot` 时自动安装最新的快照版本 |
 
 ## 使用示例
 

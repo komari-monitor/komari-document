@@ -18,13 +18,17 @@ git clone https://github.com/komari-monitor/komari
 cd komari
 ```
 
-Copy the frontend output and theme metadata into the backend project:
+Pack the frontend `dist` directory with `tar + zstd -19`, then copy the theme metadata. The backend decompresses this archive into memory at startup:
 
 ```bash
-mkdir -p web/public/defaultTheme/dist
-cp -r ../komari-web/dist/* web/public/defaultTheme/dist/
+mkdir -p web/public/defaultTheme
+tar -cf /tmp/komari-dist.tar -C ../komari-web/dist .
+zstd -19 -T0 -f /tmp/komari-dist.tar -o web/public/defaultTheme/dist.tar.zst
+rm -f /tmp/komari-dist.tar
 cp ../komari-web/komari-theme.json web/public/defaultTheme/
 ```
+
+Install the `zstd` package first if it is not already available on your system.
 
 Build Komari:
 
