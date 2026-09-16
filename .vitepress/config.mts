@@ -66,7 +66,6 @@ const zhSidebar = [
       { text: "主题开发", link: "/dev/theme" },
       { text: "API 接口", link: "/dev/api" },
       { text: "Agent 开发", link: "/dev/agent" },
-      { text: "RPC 接口", link: "/dev/rpc" },
       { text: "插件开发", link: "/dev/plugin/index" },
       { text: "兼容性维护时间表", link: "/dev/compatibility" },
       { text: "本地开发", link: "/dev/local" },
@@ -127,7 +126,6 @@ const enSidebar = [
       { text: "Theme Development", link: "/en/dev/theme" },
       { text: "API", link: "/en/dev/api" },
       { text: "Agent Development", link: "/en/dev/agent" },
-      { text: "RPC", link: "/en/dev/rpc" },
       { text: "Plugin Development", link: "/en/dev/plugin/index" },
       { text: "Compatibility Timeline", link: "/en/dev/compatibility" },
       { text: "Local Development", link: "/en/dev/local" },
@@ -201,6 +199,7 @@ export default defineConfig({
         sidebar: zhSidebar,
         outline: {
           label: "本页目录",
+          level: [2, 4],
         },
         docFooter: {
           prev: "上一页",
@@ -226,6 +225,7 @@ export default defineConfig({
         sidebar: enSidebar,
         outline: {
           label: "On This Page",
+          level: [2, 4],
         },
         docFooter: {
           prev: "Previous page",

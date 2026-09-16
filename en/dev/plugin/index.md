@@ -8,18 +8,28 @@ Komari supports extending the server with **JavaScript plugins**. A plugin is a 
 Plugins inherit Komari's system privileges and may request sensitive capabilities such as filesystem access, child process execution, or port listening. Only install plugins you trust, and review the declared permissions carefully before enabling a third-party plugin.
 :::
 
+Administrator API examples in this guide use Bearer authentication:
+
+```http
+Authorization: Bearer <api-key>
+```
+
+```bash
+export KOMARI_API_KEY="<api-key>"
+```
+
 ## Table of Contents
 
-- [1. Quick Start](#1-quick-start)
-- [2. Plugin Package and Manifest](#2-plugin-package-and-manifest)
-- [3. Lifecycle Interfaces](#3-lifecycle-interfaces)
-- [4. JavaScript Runtime and Compatibility Modules](#4-javascript-runtime-and-compatibility-modules)
-- [5. `server` Module](#5-server-module)
-- [6. Plugin Pages](#6-plugin-pages)
-- [7. Plugin Configuration](#7-plugin-configuration)
-- [8. Plugin-owned RPC](#8-plugin-owned-rpc)
-- [9. Plugin Management HTTP Interfaces](#9-plugin-management-http-interfaces)
-- [10. Permissions, Limits, and Errors](#10-permissions-limits-and-errors)
+- [1. Quick Start](#_1-quick-start)
+- [2. Plugin Package and Manifest](#_2-plugin-package-and-manifest)
+- [3. Lifecycle Interfaces](#_3-lifecycle-interfaces)
+- [4. JavaScript Runtime and Compatibility Modules](#_4-javascript-runtime-and-compatibility-modules)
+- [5. `server` Module](#_5-server-module)
+- [6. Plugin Pages](#_6-plugin-pages)
+- [7. Plugin Configuration](#_7-plugin-configuration)
+- [8. Plugin-owned RPC](#_8-plugin-owned-rpc)
+- [9. Plugin Management HTTP Interfaces](#_9-plugin-management-http-interfaces)
+- [10. Permissions, Limits, and Errors](#_10-permissions-limits-and-errors)
 
 ## 1. Quick Start
 
@@ -179,7 +189,7 @@ Changing permissions invalidates the stored approval hash, so the plugin must be
 
 See [Managed Configuration](../managed-config.md).
 
-To read the saved managed configuration, call [`server.getConfig()`](#58-servergetconfig).
+To read the saved managed configuration, call [`server.getConfig()`](#_5-8-server-getconfig).
 
 Example:
 
@@ -217,7 +227,7 @@ Example:
 
 `visibility: "public"` only applies to `iframe` pages. Public pages are served by `/api/plugin/:short/*filepath` without authentication, and only files in the directory of the declared public page and its subdirectories are accessible.
 
-See [Plugin Pages](#6-plugin-pages) for details.
+See [Plugin Pages](#_6-plugin-pages) for details.
 
 ### 2.6 Complete Manifest Example
 
@@ -570,7 +580,7 @@ function load() {
 }
 ```
 
-For the parameters, return values, and errors of individual RPC methods, see the [RPC documentation](../rpc.md).
+For the parameters, return values, and errors of individual RPC methods, see the [RPC documentation](/en/dev/api#_7-json-rpc-quick-start).
 
 ### 5.4 `server.hook(kind, fn)` / `server.hook(kind, matcher, fn)`
 
@@ -1045,7 +1055,7 @@ For example, if the configuration contains `message` and `enabled`, the return s
 
 ```bash
 curl -s "$BASE/api/admin/plugin/status-extension/pages/admin.html" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 Resources from the same origin in `pages/admin.html` can use the same prefix:
@@ -1119,7 +1129,7 @@ Use `server.getConfig()` inside the plugin. See 5.8. The result merges saved val
 
 ```bash
 curl -s "$BASE/api/admin/plugin/configuration?short=status-extension" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 Example response:
@@ -1165,7 +1175,7 @@ Example response:
 
 ```bash
 curl -s -X POST "$BASE/api/admin/plugin/configuration" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "short": "status-extension",
@@ -1186,7 +1196,7 @@ Plugins register methods through `server.registerRPC(method, handler)`. See 5.7.
 
 ### 8.2 Invocation
 
-Registered methods enter the Komari RPC registry. They can be called through the existing `/api/rpc2` endpoint or by another plugin through `server.call()`. This document does not repeat the RPC request envelope, error codes, or authentication details; see the [RPC documentation](../rpc.md).
+Registered methods enter the Komari RPC registry. They can be called through the existing `/api/rpc2` endpoint or by another plugin through `server.call()`. This document does not repeat the RPC request envelope, error codes, or authentication details; see the [RPC documentation](/en/dev/api#_7-json-rpc-quick-start).
 
 **HTTP example:**
 
@@ -1265,7 +1275,7 @@ All interfaces require administrator authentication. "Standard envelope" means a
 
 ```bash
 curl -s "$BASE/api/admin/plugin/list" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 ### 9.2 Enabling or Disabling a Plugin
@@ -1288,7 +1298,7 @@ curl -s "$BASE/api/admin/plugin/list" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/plugin/enabled" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "short": "status-extension",
@@ -1315,7 +1325,7 @@ curl -s -X POST "$BASE/api/admin/plugin/enabled" \
 
 ```bash
 curl -s "$BASE/api/admin/plugin/logs?short=status-extension" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 Example response:
@@ -1347,7 +1357,7 @@ Example response:
 
 ```bash
 curl -s -X POST "$BASE/api/admin/plugin/delete" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"short":"status-extension"}'
 ```
@@ -1376,7 +1386,7 @@ Plugin installation uses the shared archive upload interface with `purpose` set 
 
 ```bash
 curl -s -X POST "$BASE/api/admin/upload/init" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "purpose": "plugin",
@@ -1405,7 +1415,7 @@ curl -s -X POST "$BASE/api/admin/upload/init" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/upload/chunk" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -F "upload_id=<upload-id>" \
   -F "chunk_index=0" \
   -F "chunk_data=@chunk-0.bin"
@@ -1427,7 +1437,7 @@ curl -s -X POST "$BASE/api/admin/upload/chunk" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/upload/merge" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"upload_id":"<upload-id>"}'
 ```
@@ -1448,7 +1458,7 @@ curl -s -X POST "$BASE/api/admin/upload/merge" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/upload/cancel" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"upload_id":"<upload-id>"}'
 ```
@@ -1467,7 +1477,7 @@ curl -s -X POST "$BASE/api/admin/upload/cancel" \
 
 ```bash
 curl -s "$BASE/api/admin/plugin/market/sources" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 #### 9.6.2 Creating a Source
@@ -1489,7 +1499,7 @@ curl -s "$BASE/api/admin/plugin/market/sources" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/plugin/market/sources" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My catalog",
@@ -1516,7 +1526,7 @@ curl -s -X POST "$BASE/api/admin/plugin/market/sources" \
 
 ```bash
 curl -s -X PUT "$BASE/api/admin/plugin/market/sources/<source-id>" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated catalog",
@@ -1541,7 +1551,7 @@ curl -s -X PUT "$BASE/api/admin/plugin/market/sources/<source-id>" \
 
 ```bash
 curl -s -X DELETE "$BASE/api/admin/plugin/market/sources/<source-id>" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 ### 9.7 Plugin Market Catalog
@@ -1587,7 +1597,7 @@ curl -s -X DELETE "$BASE/api/admin/plugin/market/sources/<source-id>" \
 
 ```bash
 curl -s "$BASE/api/admin/plugin/market/catalog?refresh=true" \
-  -H "Cookie: $COOKIE"
+  -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
 ### 9.8 Installing a Plugin from the Market
@@ -1607,7 +1617,7 @@ curl -s "$BASE/api/admin/plugin/market/catalog?refresh=true" \
 
 ```bash
 curl -s -X POST "$BASE/api/admin/plugin/market/install" \
-  -H "Cookie: $COOKIE" \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "source_id": "official",

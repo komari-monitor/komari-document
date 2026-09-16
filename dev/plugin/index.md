@@ -10,16 +10,16 @@ Komari 支持通过 **JavaScript 插件** 扩展服务端能力。插件是一�
 
 ## 目录
 
-- [1. 快速开始](#1-快速开始)
-- [2. 插件包与清单](#2-插件包与清单)
-- [3. 生命周期接口](#3-生命周期接口)
-- [4. JavaScript 运行时与兼容模块](#4-javascript-运行时与兼容模块)
-- [5. `server` 模块](#5-server-模块)
-- [6. 插件页面](#6-插件页面)
-- [7. 插件配置](#7-插件配置)
-- [8. 插件自有 RPC](#8-插件自有-rpc)
-- [9. 插件管理 HTTP 接口](#9-插件管理-http-接口)
-- [10. 权限、限制与错误](#10-权限限制与错误)
+- [1. 快速开始](#_1-快速开始)
+- [2. 插件包与清单](#_2-插件包与清单)
+- [3. 生命周期接口](#_3-生命周期接口)
+- [4. JavaScript 运行时与兼容模块](#_4-javascript-运行时与兼容模块)
+- [5. `server` 模块](#_5-server-模块)
+- [6. 插件页面](#_6-插件页面)
+- [7. 插件配置](#_7-插件配置)
+- [8. 插件自有 RPC](#_8-插件自有-rpc)
+- [9. 插件管理 HTTP 接口](#_9-插件管理-http-接口)
+- [10. 权限、限制与错误](#_10-权限限制与错误)
 
 ## 1. 快速开始
 
@@ -179,7 +179,7 @@ function unload() {
 
 详见：[托管配置（Managed Configuration）](../managed-config.md)。
 
-如何获取保存的托管配置内容？[调用 server.getConfig()](#58-servergetconfig)
+如何获取保存的托管配置内容？[调用 server.getConfig()](#_5-8-server-getconfig)
 
 示例：
 
@@ -217,7 +217,7 @@ function unload() {
 
 `visibility: "public"` 仅对 `iframe` 页面生效，并通过 `/api/plugin/:short/*filepath` 无鉴权提供；只允许访问该页面所在目录及其子目录。
 
-详细说明见[插件页面](#6-插件页面)。
+详细说明见[插件页面](#_6-插件页面)。
 
 ### 2.6 清单安装示例
 
@@ -574,7 +574,7 @@ function load() {
 }
 ```
 
-具体 RPC 方法的参数、返回和错误语义请查阅 [RPC 方法](../rpc.md)。
+具体 RPC 方法的参数、返回和错误语义请查阅 [RPC 方法](/dev/api#7-json-rpc-快速开始)。
 
 ### 5.4 `server.hook(kind, fn)` / `server.hook(kind, matcher, fn)`
 
@@ -1193,7 +1193,7 @@ curl -s -X POST "$BASE/api/admin/plugin/configuration" \
 
 ### 8.2 调用
 
-注册后的方法进入 Komari 统一 RPC registry，可通过现有 `/api/rpc2` 调用，也可由其它插件通过 `server.call()` 调用。本文不重复 RPC 请求包络、错误码和鉴权细节，请查阅 [RPC 方法](../rpc.md)。
+注册后的方法进入 Komari 统一 RPC registry，可通过现有 `/api/rpc2` 调用，也可由其它插件通过 `server.call()` 调用。本文不重复 RPC 请求包络、错误码和鉴权细节，请查阅 [RPC 方法](/dev/api#7-json-rpc-快速开始)。
 
 **HTTP 调用示例：**
 
