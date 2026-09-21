@@ -853,7 +853,6 @@ Anonymous visitors may call:
 public:getMe
 public:getPublicSettings
 public:getVersion
-public:recordVisitorEvent
 ```
 
 A valid temporary share cookie also allows anonymous `public:*` calls.
@@ -945,7 +944,6 @@ Parameters:
 | `public:getRecordsByUUID` | `{ uuid, load_type?, hours? }` | Projected load records. |
 | `public:getPingRecords` | `{ uuid?, task_id?, hours? }` | Ping records and task summaries. |
 | `public:getPublicPingTasks` | None | Public ping tasks. |
-| `public:recordVisitorEvent` | `{ event, path?, route?, target?, detail? }` | Visitor audit status. |
 | `public:listMetricDefinitions` | None | Metric definitions. |
 | `public:queryMetrics` | Metric query object | Metric series. |
 | `public:getPingMetricStats` | Ping metric query object | Aggregated ping statistics. |

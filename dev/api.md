@@ -2288,7 +2288,6 @@ body.params.token
 public:getMe
 public:getPublicSettings
 public:getVersion
-public:recordVisitorEvent
 ```
 
 持有有效 `temp_key` 的匿名访客可继续调用 `public:*` 方法。
@@ -2721,39 +2720,7 @@ Public 方法对 guest 开放，返回内容会自动过滤 Hidden 节点和敏�
 
 **返回：** `{ id, weight, name, clients, default_on, type, interval }[]`。
 
-### 13.9 `public:recordVisitorEvent`
-
-**参数：**
-
-| 字段        | 类型     | 必填 | 说明                     |
-| ----------- | -------- | ---- | ------------------------ |
-| `event`     | `string` | 是   | 事件名，例如 `page_view` |
-| `action`    | `string` | 否   | `event` 的别名           |
-| `operation` | `string` | 否   | `event` 的别名           |
-| `path`      | `string` | 否   | 前端路径                 |
-| `route`     | `string` | 否   | 路由名                   |
-| `target`    | `string` | 否   | 目标标识                 |
-| `detail`    | `object` | 否   | 有长度限制的元数据       |
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "public:recordVisitorEvent",
-  "params": {
-    "event": "node_open",
-    "path": "/",
-    "target": "d4c8d9a1-4ec5-4c1b-9b95-4c1c8f930b0d",
-    "detail": {
-      "source": "node-card"
-    }
-  },
-  "id": 1
-}
-```
-
-限流为每 IP 每分钟 30 次，突发 10 次。
-
-### 13.10 `public:listMetricDefinitions`
+### 13.9 `public:listMetricDefinitions`
 
 返回所有指标定义和保留策略。
 
@@ -2765,7 +2732,7 @@ Public 方法对 guest 开放，返回内容会自动过滤 Hidden 节点和敏�
 }
 ```
 
-### 13.11 `public:queryMetrics`
+### 13.10 `public:queryMetrics`
 
 **参数：**
 
@@ -2817,7 +2784,7 @@ Public 方法对 guest 开放，返回内容会自动过滤 Hidden 节点和敏�
 }
 ```
 
-### 13.12 `public:getPingMetricStats`
+### 13.11 `public:getPingMetricStats`
 
 **参数：**
 
