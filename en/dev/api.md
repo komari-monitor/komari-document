@@ -500,7 +500,6 @@ curl -s -X POST "$BASE/api/admin/task/exec" \
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET/POST` | `/api/admin/settings/` | Read or update settings. |
-| `GET/POST` | `/api/admin/settings/xtermjs` | Read or update xterm.js settings. |
 | `GET/POST` | `/api/admin/settings/message-sender` | Read or update message providers. |
 | `GET/POST` | `/api/admin/settings/oidc` | Read or update OIDC providers. |
 
@@ -975,8 +974,6 @@ All methods in this section require the `admin` role.
 | `admin:deleteAllSessions` | None |
 | `admin:getSettings` | None |
 | `admin:editSettings` | Partial settings object |
-| `admin:getXtermjsSettings` | None |
-| `admin:setXtermjsSettings` | xterm.js settings object |
 
 ### 14.3 Tasks
 

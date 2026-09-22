@@ -960,36 +960,6 @@ curl -s \
 }
 ```
 
-#### 5.3.3 xterm.js 设置
-
-**接口：**
-
-- `GET /api/admin/settings/xtermjs`
-- `POST /api/admin/settings/xtermjs`
-
-```bash
-curl -s \
-  -H "Authorization: Bearer $KOMARI_API_KEY" \
-  "$BASE/api/admin/settings/xtermjs"
-
-curl -s \
-  -H "Authorization: Bearer $KOMARI_API_KEY" \
-  -X POST "$BASE/api/admin/settings/xtermjs" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "terminalOptions": {
-      "cursorBlink": true,
-      "convertEol": true,
-      "fontFamily": "monospace",
-      "fontSize": 16,
-      "scrollback": 5000
-    },
-    "terminalPadding": 16,
-    "transparentBackground": false,
-    "customCss": ""
-  }'
-```
-
 ### 5.4 Provider 配置
 
 #### 5.4.1 消息发送 Provider
@@ -2957,8 +2927,6 @@ Admin 方法仅管理员可调用。下列示例均可通过 `/api/rpc2`、sessi
 | `admin:deleteAllSessions`  | -                 | `null`                                       |
 | `admin:getSettings`        | -                 | 设置对象                                     |
 | `admin:editSettings`       | 部分设置键值      | `null` 或 `{ restart_required, guide_path }` |
-| `admin:getXtermjsSettings` | -                 | `XtermJSSettings`                            |
-| `admin:setXtermjsSettings` | `XtermJSSettings` | 归一化后的设置                               |
 
 删除会话：
 
@@ -2984,28 +2952,6 @@ Admin 方法仅管理员可调用。下列示例均可通过 `/api/rpc2`、sessi
     "private_site": true
   },
   "id": 2
-}
-```
-
-更新 xterm.js：
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "admin:setXtermjsSettings",
-  "params": {
-    "terminalOptions": {
-      "cursorBlink": true,
-      "convertEol": true,
-      "fontFamily": "monospace",
-      "fontSize": 16,
-      "scrollback": 5000
-    },
-    "terminalPadding": 16,
-    "transparentBackground": false,
-    "customCss": ""
-  },
-  "id": 3
 }
 ```
 
