@@ -508,7 +508,7 @@ curl -s "$BASE/api/admin/settings/" \
   -H "Authorization: Bearer $KOMARI_API_KEY"
 ```
 
-### 5.4 Sessions, Logs, and Clipboard
+### 5.4 Sessions, Logs
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
@@ -516,12 +516,6 @@ curl -s "$BASE/api/admin/settings/" \
 | `POST` | `/api/admin/session/remove` | Remove one session. |
 | `POST` | `/api/admin/session/remove/all` | Remove all sessions. |
 | `GET` | `/api/admin/logs` | Read audit logs. |
-| `GET` | `/api/admin/clipboard` | List clipboard entries. |
-| `POST` | `/api/admin/clipboard` | Create an entry. |
-| `GET` | `/api/admin/clipboard/:id` | Get an entry. |
-| `POST` | `/api/admin/clipboard/:id` | Update an entry. |
-| `POST` | `/api/admin/clipboard/remove` | Batch delete entries. |
-| `POST` | `/api/admin/clipboard/:id/remove` | Delete one entry. |
 
 ### 5.5 Notifications and Ping Tasks
 
@@ -1010,18 +1004,7 @@ All methods in this section require the `admin` role.
 | `admin:disableOfflineNotification` | `string[]` |
 | `admin:sendNotification` | `{ event: EventMessage }` |
 
-### 14.6 Clipboard
-
-| Method | Parameters |
-| --- | --- |
-| `admin:getClipboard` | `{ id }` |
-| `admin:listClipboard` | None |
-| `admin:createClipboard` | `{ text, name, weight?, remark? }` |
-| `admin:updateClipboard` | `{ id, ...fields }` |
-| `admin:deleteClipboard` | `{ id }` |
-| `admin:batchDeleteClipboard` | `{ ids: number[] }` |
-
-### 14.7 Providers
+### 14.6 Providers
 
 | Method | Parameters |
 | --- | --- |
@@ -1030,7 +1013,7 @@ All methods in this section require the `admin` role.
 | `admin:getOidcProvider` | `{ provider? }` |
 | `admin:setOidcProvider` | `{ name, addition }` |
 
-### 14.8 Database and Maintenance
+### 14.7 Database and Maintenance
 
 | Method | Parameters |
 | --- | --- |
@@ -1043,7 +1026,7 @@ All methods in this section require the `admin` role.
 | `admin:testGeoip` | `{ ip? }` |
 | `admin:testSendMessage` | None |
 
-### 14.9 Plugins and Metrics
+### 14.8 Plugins and Metrics
 
 | Method | Parameters |
 | --- | --- |
@@ -1059,7 +1042,7 @@ All methods in this section require the `admin` role.
 | `admin:startMetricMigration` | `{ source_driver?, source_dsn? }` |
 | `admin:cancelMetricMigration` | None |
 
-### 14.10 Node File Operations
+### 14.9 Node File Operations
 
 | Method | Parameters | Result |
 | --- | --- | --- |

@@ -389,7 +389,7 @@ document.querySelectorAll(".km-node-card").forEach((card) => {
 | ---------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | 页面根节点 | `km-page-<路由>`           | `km-page-instance`、`km-page-admin-dashboard`、`km-page-admin-settings-general`、`km-page-admin-market-plugins`         |
 | 布局容器   | `km-layout` / `km-main` 等 | `km-layout`、`km-main`、`km-navbar`、`km-footer`、`km-admin-layout`、`km-admin-settings-layout`                         |
-| 共享组件   | `km-<组件名>`              | `km-node-card`、`km-node-display`、`km-login-dialog`、`km-upload-dialog`、`km-load-chart`、`km-command-clipboard`       |
+| 共享组件   | `km-<组件名>`              | `km-node-card`、`km-node-display`、`km-login-dialog`、`km-upload-dialog`、`km-load-chart`                                                                       |
 | 页面区块   | `km-<页面>-<区块>`         | `km-instance-server-list`、`km-instance-server-item`、`km-dashboard-card`、`km-exec-editor-input`、`km-plugins-toolbar` |
 | UI 基础件  | `km-ui-<组件>`             | `km-ui-button`、`km-ui-input`、`km-ui-table`、`km-ui-table-row`、`km-ui-checkbox`                                       |
 
