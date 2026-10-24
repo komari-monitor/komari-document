@@ -363,7 +363,7 @@ async function unload() {
 | `net`、`http` | TCP/HTTP；Server 监听端口需要 `allowListen`，默认绑定 `127.0.0.1` |
 | `crypto` | 哈希、随机数、密钥派生、AES/ChaCha20-Poly1305 和常用签名验签 |
 
-运行时当前不提供浏览器 DOM、`WebSocket`、`EventSource`、Web Streams、ESM `import/export`，也不提供完整的 `https`、`tls`、`dns`、`zlib`、`worker_threads` 等 Node 核心模块。`process.memoryUsage()`、`cpuUsage()` 等指标反映整个 Komari 进程，不是单个插件的资源占用。
+运行时当前不提供浏览器 DOM、全局 `WebSocket` 构造函数、`EventSource`、Web Streams、ESM `import/export`，也不提供完整的 `https`、`tls`、`dns`、`zlib`、`worker_threads` 等 Node 核心模块。接收 WebSocket 连接可使用下文的 `req.upgradeWebSocket()`。`process.memoryUsage()`、`cpuUsage()` 等指标反映整个 Komari 进程，不是单个插件的资源占用。
 
 ## 5. `server` 模块
 
@@ -383,7 +383,7 @@ const server = require("server");
 | --------- | ------------------------------------- | ---- | ----------------------------------------------------------------- |
 | `method`  | `string`                              | 是   | HTTP 方法，会转为大写；不能为空                                   |
 | `path`    | `string`                              | 是   | 路由路径，必须以 `/` 开头                                         |
-| `handler` | `(req, res) => void \| Promise<void>` | 是   | 请求处理器；可以返回 Promise，但必须最终调用 `res.end()` 完成响应 |
+| `handler` | `(req, res) => void \| Promise<void>` | 是   | 请求处理器；可以返回 Promise，通过 `res.end()` 完成 HTTP 响应，或通过 `req.upgradeWebSocket()` 升级连接 |
 
 **返回：** `undefined`。
 
@@ -397,6 +397,7 @@ const server = require("server");
 | `query`   | `Record<string,string>`             | query 参数；同名多个值以逗号连接 |
 | `body`    | `string`                            | 请求体文本                       |
 | `context` | `RequestContext`                    | 调用者与网络信息                 |
+| `upgradeWebSocket()` | `() => Promise<RouteWebSocket>` | 将当前 GET 请求升级为 WebSocket，见下文 |
 
 **`req.context` 对象：**
 
@@ -489,7 +490,68 @@ function load() {
 }
 ```
 
-卸载后路由槽仍保留，但请求返回 `404`。非流式 handler 的执行超时为 `permissions.timeout` 秒，超时返回 `504`。
+卸载后路由槽仍保留，但请求返回 `404`。未升级为 WebSocket 的非流式 handler 等待超时为 `permissions.timeout` 秒，超时返回 `504`。
+
+#### 5.1.1 `req.upgradeWebSocket()`
+
+**说明：** 将当前 GET 请求升级为 WebSocket，使用 Komari 已有的 HTTP 监听端口接收连接，不需要注册 `WS` 方法。
+
+**权限：** `allowRoutes`；不要求 `node`、`allowListen` 或 `allowHooks`。
+
+**参数：** 无。
+
+**返回：** `Promise<RouteWebSocket>`。成功时连接已打开，失败时 reject；不需要等待 `onopen`。
+
+**连接对象：**
+
+| 成员 | 类型 | 说明 |
+| ---- | ---- | ---- |
+| `send(data)` | `(string \| ArrayBuffer \| ArrayBufferView) => void` | 将消息加入发送队列；字符串为文本帧，二进制数据为二进制帧 |
+| `close(code?, reason?)` | `(number?, string?) => void` | 发起关闭；默认 `1000` 和空字符串，重复关闭不重复执行 |
+| `readyState` | `number`，只读 | `1`：已打开；`2`：关闭中；`3`：已关闭 |
+| `onmessage` | `(event) => void` | `event.data` 为文本字符串或二进制 `ArrayBuffer` |
+| `onerror` | `(event) => void` | `event.message` 为错误说明；连接发生致命错误后关闭 |
+| `onclose` | `(event) => void` | `event.code`、`event.reason`、`event.wasClean` 表示关闭码、原因和是否正常完成关闭握手 |
+
+**示例：**
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/socket", async (req, res) => {
+    // 需要鉴权时，在升级前检查 req.context.principal。
+    const ws = await req.upgradeWebSocket();
+    ws.onmessage = ({ data }) => {
+      ws.send(data);
+    };
+    ws.onerror = ({ message }) => {
+      console.error("WebSocket error:", message);
+    };
+    ws.onclose = ({ code, reason, wasClean }) => {
+      console.log("WebSocket closed:", code, reason, wasClean);
+    };
+    ws.send("connected");
+    ws.send(new Uint8Array([1, 2, 3]));
+  });
+}
+```
+
+**升级与响应：**
+
+- 仅支持 GET WebSocket 握手请求。必须在 `res.write()`、`res.end()` 或设置 `res.streaming = true` 之前升级，同一个请求不能重复升级。
+- 升级成功后不要调用 `res.end()`，也不要再写入 HTTP 响应体或修改响应头。升级前设置的 HTTP 响应头不会作为自定义握手响应头传递。
+- 非 WebSocket 请求等本地校验失败时，可以 catch 后返回普通 HTTP 响应；实际握手失败时可能已发送错误响应或接管连接，不应再尝试补写 HTTP 响应。
+- 使用服务端已有的 Origin 校验策略，但 Origin 校验不等于鉴权。应在升级前通过 `req.context.principal` 检查身份与角色，不满足要求时直接返回 HTTP 错误；路径位于 `/api/admin` 下也不会自动获得管理员权限检查。
+
+**消息与生命周期：**
+
+- 通过属性赋值注册回调，不使用 `.on()`；这不是完整的浏览器 WebSocket 或 Node.js `ws` 接口，也不提供客户端主动连接能力。
+- `send()` 接受 `ArrayBuffer`、TypedArray、DataView，以及可用时的 `Buffer`。二进制数据在入队时复制，视图只发送自身字节范围；修改原数据不影响已入队消息。
+- `send()` 返回 `undefined`，不返回 Promise，也不表示对端已收到。类型错误、连接非打开状态、消息过大或队列满时同步抛错；网络错误通过 `onerror` 通知，随后触发一次 `onclose`。回调执行抛错或超时也会关闭连接。
+- `close()` 的关闭码仅接受 `1000` 或 `3000`–`4999`，原因必须是有效 UTF-8，最多 123 字节；参数无效时抛错。
+- 单条收发消息上限为 8 MiB。待完成发送最多 64 条、总计 16 MiB，包含正在写入的消息；超限的发送会抛错，但连接仍可继续使用。
+- 升级后的连接不受 HTTP 响应等待超时限制，JavaScript 回调仍受 `permissions.timeout` 限制。插件禁用、卸载或重载时连接自动关闭；卸载期间不保证执行 `onclose`，必要清理仍应放在 `unload()` 中。
 
 ### 5.2 `server.static(mount, dir, options?)`
 
@@ -741,7 +803,7 @@ function load() {
 
 #### 5.4.5 WebSocket Hook 接口
 
-WebSocket hook 与 HTTP hook 共用 `allowHooks` 权限。所有 upgrade 都是 GET，因此 WS matcher 只接受路径：
+WebSocket hook 与 HTTP hook 共用 `allowHooks` 权限，用于观察或修改已有连接与消息，不提供主动发送消息的连接对象。插件需要接收自己的 WebSocket 连接时，使用 5.1.1 的 `req.upgradeWebSocket()`；这些连接同样经过 WebSocket hook，但接收连接本身不要求 `allowHooks`。所有 upgrade 都是 GET，因此 WS matcher 只接受路径：
 
 ```js
 server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
@@ -1631,6 +1693,7 @@ curl -s -X POST "$BASE/api/admin/plugin/market/install" \
 | 接口                   | 权限                          |
 | ---------------------- | ----------------------------- |
 | `server.route()`       | `allowRoutes`                 |
+| `req.upgradeWebSocket()` | `allowRoutes`；不要求 Node 兼容模式 |
 | `server.static()`      | `allowRoutes`                 |
 | `server.hook()`        | `allowHooks`                  |
 | `server.injectHTML()`  | `allowHTMLInject`             |
@@ -1655,6 +1718,9 @@ curl -s -X POST "$BASE/api/admin/plugin/market/install" \
 | WebSocket 单帧 hook 上限 | 8 MiB  |
 | WebSocket 帧 hook 超时   | 1 秒   |
 | WebSocket 连续丢弃上限   | 16 帧  |
+| 路由 WebSocket 单条消息上限 | 8 MiB |
+| 路由 WebSocket 待完成发送上限 | 64 条，合计 16 MiB，包含正在写入的消息 |
+| 路由 WebSocket 关闭原因上限 | 123 UTF-8 字节 |
 
 ### 10.3 错误对象
 
@@ -1699,6 +1765,7 @@ JSON-RPC 常用错误码：
 | 资源                                    | 插件卸载时行为                                         |
 | --------------------------------------- | ------------------------------------------------------ |
 | `server.route()` 注册的 route slot      | 保留，请求返回 `404`                                   |
+| `req.upgradeWebSocket()` 接收的连接 | 关闭；不保证执行 JavaScript `onclose` 回调 |
 | `server.static()` 注册的静态 route slot | 保留，请求返回 `404`                                   |
 | HTTP request/response hook              | 移除                                                   |
 | WebSocket hook                          | 移除                                                   |

@@ -373,7 +373,7 @@ When `permissions.node` is `true`, the runtime also injects `Buffer`, `process`,
 | `net`, `http` | TCP and HTTP. Server listening requires `allowListen` and binds to `127.0.0.1` by default. |
 | `crypto` | Hashes, random values, key derivation, AES and ChaCha20-Poly1305, and common signing and verification operations. |
 
-The runtime does not provide the browser DOM, `WebSocket`, `EventSource`, Web Streams, ESM `import` or `export`, or complete implementations of Node core modules such as `https`, `tls`, `dns`, `zlib`, and `worker_threads`. Metrics from `process.memoryUsage()` and `cpuUsage()` describe the whole Komari process, not an individual plugin. For complete compatibility boundaries, see `pkg/jsruntime/README.md` in the Komari repository.
+The runtime does not provide the browser DOM, a global `WebSocket` constructor, `EventSource`, Web Streams, ESM `import` or `export`, or complete implementations of Node core modules such as `https`, `tls`, `dns`, `zlib`, and `worker_threads`. To accept WebSocket connections, use `req.upgradeWebSocket()` below. Metrics from `process.memoryUsage()` and `cpuUsage()` describe the whole Komari process, not an individual plugin. For complete compatibility boundaries, see `pkg/jsruntime/README.md` in the Komari repository.
 
 ## 5. `server` Module
 
@@ -393,7 +393,7 @@ const server = require("server");
 | --- | --- | --- | --- |
 | `method` | `string` | Yes | HTTP method. It is converted to uppercase and cannot be empty. |
 | `path` | `string` | Yes | Route path. It must start with `/`. |
-| `handler` | `(req, res) => void \| Promise<void>` | Yes | Request handler. It may return a Promise but must eventually call `res.end()`. |
+| `handler` | `(req, res) => void \| Promise<void>` | Yes | Request handler. It may return a Promise. Complete an HTTP response with `res.end()`, or upgrade the connection with `req.upgradeWebSocket()`. |
 
 **Return value:** `undefined`.
 
@@ -407,6 +407,7 @@ const server = require("server");
 | `query` | `Record<string,string>` | Query parameters. Multiple values with the same name are joined with commas. |
 | `body` | `string` | Request body text. |
 | `context` | `RequestContext` | Caller and network information. |
+| `upgradeWebSocket()` | `() => Promise<RouteWebSocket>` | Upgrades the current GET request to WebSocket. See below. |
 
 **`req.context` object:**
 
@@ -497,7 +498,68 @@ function load() {
 }
 ```
 
-Route slots remain after the plugin is unloaded, but requests return `404`. A non-streaming handler times out after `permissions.timeout` seconds and returns `504`.
+Route slots remain after the plugin is unloaded, but requests return `404`. A non-streaming handler that has not upgraded to WebSocket times out after `permissions.timeout` seconds and returns `504`.
+
+#### 5.1.1 `req.upgradeWebSocket()`
+
+**Description:** Upgrades the current GET request to WebSocket using Komari's existing HTTP listener. Do not register a `WS` method.
+
+**Permission:** `allowRoutes`. It does not require `node`, `allowListen`, or `allowHooks`.
+
+**Parameters:** None.
+
+**Return value:** `Promise<RouteWebSocket>`. The connection is already open when the Promise resolves; failures reject it. There is no need to wait for `onopen`.
+
+**Connection object:**
+
+| Member | Type | Description |
+| --- | --- | --- |
+| `send(data)` | `(string \| ArrayBuffer \| ArrayBufferView) => void` | Queues a message. Strings become text frames; binary data becomes binary frames. |
+| `close(code?, reason?)` | `(number?, string?) => void` | Starts closing, with defaults of `1000` and an empty string. Repeated calls do not close again. |
+| `readyState` | `number`, read-only | `1`: open; `2`: closing; `3`: closed. |
+| `onmessage` | `(event) => void` | `event.data` is a string for text or an `ArrayBuffer` for binary data. |
+| `onerror` | `(event) => void` | `event.message` describes the error. A fatal connection error closes the socket. |
+| `onclose` | `(event) => void` | `event.code`, `event.reason`, and `event.wasClean` describe the close code, reason, and whether the close handshake completed cleanly. |
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.route("GET", "/socket", async (req, res) => {
+    // Check req.context.principal before upgrading if authorization is needed.
+    const ws = await req.upgradeWebSocket();
+    ws.onmessage = ({ data }) => {
+      ws.send(data);
+    };
+    ws.onerror = ({ message }) => {
+      console.error("WebSocket error:", message);
+    };
+    ws.onclose = ({ code, reason, wasClean }) => {
+      console.log("WebSocket closed:", code, reason, wasClean);
+    };
+    ws.send("connected");
+    ws.send(new Uint8Array([1, 2, 3]));
+  });
+}
+```
+
+**Upgrade and response behavior:**
+
+- Only GET WebSocket handshake requests can be upgraded. Upgrade before calling `res.write()`, `res.end()`, or setting `res.streaming = true`. A request cannot be upgraded twice.
+- After a successful upgrade, do not call `res.end()`, write an HTTP body, or change response headers. HTTP response headers set before upgrading are not forwarded as custom handshake response headers.
+- Local validation failures, such as a non-WebSocket request, can be caught while the HTTP response remains writable. An actual handshake failure may already have sent an error response or taken over the connection; do not attempt to append another HTTP response.
+- The existing server Origin policy applies, but Origin validation is not authentication. Check identity and roles through `req.context.principal` before upgrading, and return an HTTP error if access is denied. A path under `/api/admin` does not automatically enforce an admin role.
+
+**Messages and lifecycle:**
+
+- Assign callback properties instead of using `.on()`. This is not the complete browser WebSocket or Node.js `ws` interface, and it does not provide outbound client connections.
+- `send()` accepts `ArrayBuffer`, TypedArray, DataView, and `Buffer` when available. Binary data is copied on admission, using only a view's byte range. Later source changes do not affect queued messages.
+- `send()` returns `undefined`, not a Promise or a peer acknowledgement. Invalid data, a non-open connection, an oversized message, or a full queue throws synchronously. Network errors trigger `onerror`, followed by a single `onclose`. A throwing or timed-out callback also closes the connection.
+- `close()` accepts only code `1000` or `3000`–`4999`. The reason must be valid UTF-8 and at most 123 bytes. Invalid arguments throw.
+- Each sent or received message is limited to 8 MiB. Outstanding sends are limited to 64 messages and 16 MiB total, including the message being written. A rejected send throws without closing the connection.
+- An upgraded connection is not subject to the HTTP response waiting timeout. JavaScript callbacks remain subject to `permissions.timeout`. Disabling, unloading, or reloading the plugin closes its connections. `onclose` is not guaranteed during unload, so essential cleanup still belongs in `unload()`.
 
 ### 5.2 `server.static(mount, dir, options?)`
 
@@ -747,7 +809,7 @@ Path comparison is case-insensitive. HTTP methods must be `GET`, `HEAD`, `POST`,
 
 #### 5.4.5 WebSocket Hooks
 
-WebSocket hooks share the `allowHooks` permission with HTTP hooks. Every upgrade is a GET request, so WebSocket matchers accept only paths:
+WebSocket hooks share the `allowHooks` permission with HTTP hooks. They observe or modify existing connections and messages; they do not provide a connection object for sending messages. To accept a plugin-owned WebSocket connection, use `req.upgradeWebSocket()` in 5.1.1. Those connections also pass through WebSocket hooks, but accepting a connection does not require `allowHooks`. Every upgrade is a GET request, so WebSocket matchers accept only paths:
 
 ```js
 server.hook("wsMessage", "/api/clients/v2/rpc", (ctx, msg) => {
@@ -1634,6 +1696,7 @@ The server fetches the catalog again, downloads the ZIP, validates its SHA-256, 
 | Interface | Permission |
 | --- | --- |
 | `server.route()` | `allowRoutes` |
+| `req.upgradeWebSocket()` | `allowRoutes`; Node compatibility is not required |
 | `server.static()` | `allowRoutes` |
 | `server.hook()` | `allowHooks` |
 | `server.injectHTML()` | `allowHTMLInject` |
@@ -1658,6 +1721,9 @@ The server fetches the catalog again, downloads the ZIP, validates its SHA-256, 
 | WebSocket frame hook limit | 8 MiB |
 | WebSocket frame hook timeout | 1 second |
 | Consecutive WebSocket frame drops | 16 frames |
+| Route WebSocket message limit | 8 MiB |
+| Route WebSocket outstanding sends | 64 messages, 16 MiB total, including the message being written |
+| Route WebSocket close reason limit | 123 UTF-8 bytes |
 
 ### 10.3 Error Objects
 
@@ -1702,6 +1768,7 @@ Common JSON-RPC error codes:
 | Resource | Behavior when the plugin unloads |
 | --- | --- |
 | Route slot registered by `server.route()` | Retained; requests return `404`. |
+| Connections accepted by `req.upgradeWebSocket()` | Closed; JavaScript `onclose` delivery is not guaranteed. |
 | Static route slot registered by `server.static()` | Retained; requests return `404`. |
 | HTTP request and response hooks | Removed. |
 | WebSocket hooks | Removed. |
