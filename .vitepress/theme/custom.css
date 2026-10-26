@@ -143,6 +143,24 @@ body {
   border-radius: 8px;
 }
 
+/* Reserve space below long article outlines for the sidebar sponsor slot.
+   Only the desktop aside is affected; the mobile outline stays unchanged. */
+.VPDocAside .VPDocAsideOutline {
+  flex-shrink: 0;
+  max-height: min(50vh, 480px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--vp-c-divider) transparent;
+}
+
+.VPDocAside .VPDocAsideOutline .outline-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--vp-c-bg);
+}
+
 @media (min-width: 960px) {
   .VPHome {
     margin-bottom: 24px;
