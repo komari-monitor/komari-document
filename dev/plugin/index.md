@@ -2,7 +2,7 @@
 
 ## 说明
 
-Komari 支持通过 **JavaScript 插件** 扩展服务端能力。插件是一个 ZIP 包，包含清单文件（`komari-plugin.json`）和入口脚本（默认 `script.js`）。插件在服务端进程中运行于独立的 goja JS 运行时（沙箱），可以注册 HTTP 路由、拦截 HTTP 请求/响应、调用系统 RPC、注册自己的 RPC 方法、声明配置项并注入管理页面。
+Komari 支持通过 **JavaScript 插件** 扩展服务端能力。插件是一个 ZIP 包，包含清单文件（`komari-plugin.json`）和入口脚本（默认 `script.js`）。插件在服务端进程中运行于独立的 MoeJS JavaScript 运行时，可以注册 HTTP 路由、拦截 HTTP 请求/响应、调用系统 RPC、注册自己的 RPC 方法、声明配置项并注入管理页面。
 
 ::: warning 安全提示
 插件将继承 Komari 的系统权限，且可能申请访问文件系统、执行子进程、监听端口等敏感能力。只安装你信任的插件；安装第三方插件前请仔细阅读其声明的权限。
@@ -342,28 +342,49 @@ async function unload() {
 
 ## 4. JavaScript 运行时与兼容模块
 
-插件运行在独立的 goja JavaScript 运行时中，支持 CommonJS `require()`、Promise/async-await、事件循环和常用 Web API。它不是浏览器，也不是完整 Node.js；同名接口不一定具备与浏览器或 Node.js 完全一致的行为。
+插件运行在独立的 [MoeJS](https://github.com/Calcium-Ion/moejs) JavaScript 运行时中，支持 CommonJS `require()`、Promise/async-await、事件循环和常用 Web API。兼容模块由 Komari 提供；它不是浏览器，也不是完整 Node.js，同名接口不一定具备完全一致的行为。
 
 无需额外权限即可使用：
 
 | 类别 | 内容 |
 | --- | --- |
 | 基础接口 | `console`、`setTimeout/setInterval/setImmediate` 及对应 `clear`、`queueMicrotask` |
+| 模块加载 | CommonJS `require()`；插件文件模块和 `server` 模块 |
 | 网络请求 | `fetch`、`XMLHttpRequest` |
-| 常驻模块 | `buffer`、`url`、`util` |
-| 文件访问 | plugin 代码目录和 `data/plugin-data/<short>`；后者通过 `__storageDir__` 访问（需 `node: true`） |
+| Web 兼容对象 | `URL`、`URLSearchParams`、`Headers`、`Request`、`Response`、`Blob`、`File`、`FormData`、`AbortController/AbortSignal`、`EventTarget/Event` 等 |
+| 常驻模块 | `buffer`、`url`、`util`（也支持 `node:` 前缀） |
 
-在 manifest 中设置 `permissions.node: true` 后，运行时还会注入 `Buffer`、`process`、`global`、`__dirname`、`__filename`，并提供以下 Node.js 兼容模块：
+未开启 Node 兼容模式时，可使用 `const { Buffer } = require("buffer")`；此时不注入全局 `Buffer`。本地 `buffer` 实现包含 `from/alloc/concat/isBuffer/byteLength` 等常用方法；`util` 提供基础的 `format/inspect/promisify/callbackify/inherits/types`，但不保证完整 Node.js 兼容性。
+
+在 manifest 中设置 `permissions.node: true` 后，运行时还会注入 `Buffer`、`process`、`global`、`__dirname`、`__filename`、`__storageDir__`，并提供以下兼容模块。模块名同时支持普通名称和 `node:` 前缀。
 
 | 模块 | 说明 |
 | --- | --- |
-| `events`、`stream`、`path`、`os`、`process` | 事件、流、路径、系统信息和进程接口 |
+| `events`、`stream`、`stream/promises`、`path`、`os`、`process` | 事件、Node 风格流、路径、系统信息和进程接口；不等同于 Web Streams |
 | `fs` | 文件读写；默认限制在插件代码目录和 `__storageDir__`，越界需要 `allowAllFileAccess` |
 | `child_process` | 执行子进程；需要 `allowExec` |
-| `net`、`http` | TCP/HTTP；Server 监听端口需要 `allowListen`，默认绑定 `127.0.0.1` |
+| `net`、`http` | TCP/HTTP；Server 监听端口需要 `allowListen`，默认绑定 `127.0.0.1`；出站连接不需要此权限 |
+| `tls` | 部分实现：`connect(options, callback?)` / `createConnection` 客户端，支持 `host/port/servername/ca/socket`；不提供 TLS server |
 | `crypto` | 哈希、随机数、密钥派生、AES/ChaCha20-Poly1305 和常用签名验签 |
 
-运行时当前不提供浏览器 DOM、全局 `WebSocket` 构造函数、`EventSource`、Web Streams、ESM `import/export`，也不提供完整的 `https`、`tls`、`dns`、`zlib`、`worker_threads` 等 Node 核心模块。接收 WebSocket 连接可使用下文的 `req.upgradeWebSocket()`。`process.memoryUsage()`、`cpuUsage()` 等指标反映整个 Komari 进程，不是单个插件的资源占用。
+`tls` 客户端使用证书校验，最低 TLS 1.2；可通过 PEM 字符串 `ca` 指定信任证书，或通过 `socket` 升级现有 `net.Socket`（需提供服务器名）。不要依赖 Node.js 的所有 TLS 选项，例如 `rejectUnauthorized: false` 不会关闭校验。HTTP/HTTPS 请求通常直接使用 `fetch`；内置模块没有注册 `https`。
+
+**模块加载与打包：**
+
+- 入口脚本作为普通脚本执行，生命周期函数应定义在全局；入口不是 CommonJS wrapper，不注入 `module` / `exports`。被 `require()` 加载的文件才有 `exports/require/module/__filename/__dirname`。
+- 顶层相对 `require("./lib.js")` 从插件代码目录解析，不随 manifest 的自定义入口子目录变化；子模块的相对路径从该模块所在目录解析。支持 `node_modules`、`.js` / `.json`、`package.json` 的 `main` 和目录 `index.js/index.json`，并缓存已加载模块。
+- 默认会校验路径穿越和软链接。`require()` 只在代码目录内解析，不因 `__storageDir__` 存在就允许从长期数据目录加载模块；`fs` 在 Node 模式下可读写这两个受限根目录。放开目录限制需要 `allowAllFileAccess`。
+- 不支持 `package.json` 的 `exports/imports/type` 解析规则或 Node 原生扩展（`.node`）。当前插件加载链路不提供 ESM `import/export` 加载器，也不直接执行 TypeScript。发布时应编译为普通 JavaScript 入口，并将依赖打包或随 ZIP 提供可由 CommonJS 加载的文件；npm 包依赖的宿主 API 仍须在上述兼容范围内。
+
+**兼容性限制：**
+
+插件可扩展 `Reflect` 等内建对象及其原型，修改仅影响当前运行时，不会共享到其他插件。
+
+- 同一插件的 JavaScript 回调在其事件循环上串行执行。Promise/async-await 不会使同步 CPU 工作并行；同步死循环仍受执行超时中断。
+- timer 返回数字句柄，不提供 Node 的 `ref/unref/refresh/hasRef`；`setImmediate` 使用零延迟 timer，不保证 Node.js 的完整 phase 顺序。
+- `fetch` 的请求/响应 body 完整缓冲，受 HTTP body 上限约束；`Response.body` 为 `null`，`Blob.stream()` 不是标准 Web ReadableStream。XHR 同步模式会阻塞当前插件事件循环。
+- 不提供浏览器 DOM、全局 `WebSocket` 构造函数、`EventSource` 或 Web Streams；接收 WebSocket 连接可使用下文的 `req.upgradeWebSocket()`。`dns`、`zlib`、`worker_threads` 等核心模块没有内置注册。
+- `process.memoryUsage()`、`cpuUsage()` 等指标反映整个 Komari 进程，不是单个插件的资源占用。独立 VM 和文件访问限制不等于操作系统级进程隔离。
 
 ## 5. `server` 模块
 
@@ -1701,12 +1722,15 @@ curl -s -X POST "$BASE/api/admin/plugin/market/install" \
 | `server.registerRPC()` | 默认可用                      |
 | `server.getConfig()`   | 默认可用                      |
 | `server.cron()`        | 默认可用                      |
-| 插件目录内文件访问     | 默认可用                      |
-| 插件目录外文件访问     | `allowAllFileAccess`          |
+| 插件代码目录内的 CommonJS 加载 | 默认可用；不要求 `node: true` |
+| 代码目录和 `__storageDir__` 内的 `fs` 读写 | `node: true` |
+| 上述根目录外的文件访问 | `allowAllFileAccess`；`fs` 另需 `node: true` |
 | `child_process`        | `allowExec` 且 `node: true`   |
 | 本地端口监听           | `allowListen` 且 `node: true` |
 
 ### 10.2 时间与容量限制
+
+执行超时用于脚本初始化、函数调用和异步回调等执行边界，不是插件的总运行时长。默认 HTTP 客户端也使用该超时时长；可通过 manifest 的 `permissions.timeout` 调整。
 
 | 项目                     | 当前值 |
 | ------------------------ | ------ |

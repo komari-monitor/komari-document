@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Komari supports extending the server with **JavaScript plugins**. A plugin is a ZIP package containing a manifest (`komari-plugin.json`) and an entry script (default `script.js`). Plugins run inside the server process in their own goja JavaScript runtime (sandbox), and can register HTTP routes, intercept HTTP requests and responses, call system RPC methods, register their own RPC methods, declare configuration items, and inject admin pages.
+Komari supports extending the server with **JavaScript plugins**. A plugin is a ZIP package containing a manifest (`komari-plugin.json`) and an entry script (default `script.js`). Plugins run inside the server process in their own MoeJS JavaScript runtime, and can register HTTP routes, intercept HTTP requests and responses, call system RPC methods, register their own RPC methods, declare configuration items, and inject admin pages.
 
 ::: warning Security
 Plugins inherit Komari's system privileges and may request sensitive capabilities such as filesystem access, child process execution, or port listening. Only install plugins you trust, and review the declared permissions carefully before enabling a third-party plugin.
@@ -352,28 +352,49 @@ If `unload()` throws or its Promise rejects, the error is reported, but the mana
 
 ## 4. JavaScript Runtime and Compatibility Modules
 
-Plugins run in an isolated goja JavaScript runtime with CommonJS `require()`, Promise and async/await support, an event loop, and common web APIs. It is not a browser and not a complete Node.js implementation. A same-named API does not necessarily have the same edge-case behavior as a browser or Node.js.
+Plugins run in an independent [MoeJS](https://github.com/Calcium-Ion/moejs) JavaScript runtime with CommonJS `require()`, Promise and async/await support, an event loop, and common web APIs. Compatibility modules are provided by Komari. This is neither a browser nor a complete Node.js implementation; same-named APIs do not necessarily behave identically.
 
 The following are available without any additional permission:
 
 | Category | APIs |
 | --- | --- |
-| Base interfaces | `console`, `setTimeout` / `setInterval` / `setImmediate` and their clear functions, `queueMicrotask` |
+| Base interfaces | `console`, `setTimeout/setInterval/setImmediate` and their clear functions, `queueMicrotask` |
+| Module loading | CommonJS `require()` for plugin files and the `server` module |
 | HTTP clients | `fetch`, `XMLHttpRequest` |
-| Always-available modules | `buffer`, `url`, `util` |
-| File access | The plugin code directory and `data/plugin-data/<short>`. The latter is available as `__storageDir__` when `node: true`. |
+| Web compatibility objects | `URL`, `URLSearchParams`, `Headers`, `Request`, `Response`, `Blob`, `File`, `FormData`, `AbortController/AbortSignal`, `EventTarget/Event`, etc. |
+| Always-available modules | `buffer`, `url`, `util` (also with the `node:` prefix) |
 
-When `permissions.node` is `true`, the runtime also injects `Buffer`, `process`, `global`, `__dirname`, and `__filename`, and provides these Node.js compatibility modules:
+Without Node compatibility mode, use `const { Buffer } = require("buffer")`; a global `Buffer` is not injected. The local `buffer` implementation includes common methods such as `from/alloc/concat/isBuffer/byteLength`. `util` provides basic `format/inspect/promisify/callbackify/inherits/types` functionality, not full Node.js compatibility.
+
+When `permissions.node: true` is set in the manifest, the runtime also injects `Buffer`, `process`, `global`, `__dirname`, `__filename`, and `__storageDir__`, and provides the following modules. Both plain names and `node:`-prefixed names are supported.
 
 | Module | Description |
 | --- | --- |
-| `events`, `stream`, `path`, `os`, `process` | Events, streams, paths, host information, and process interfaces. |
-| `fs` | File access. It is restricted to the plugin code directory and `__storageDir__` by default; escaping those roots requires `allowAllFileAccess`. |
-| `child_process` | Child process execution. Requires `allowExec`. |
-| `net`, `http` | TCP and HTTP. Server listening requires `allowListen` and binds to `127.0.0.1` by default. |
-| `crypto` | Hashes, random values, key derivation, AES and ChaCha20-Poly1305, and common signing and verification operations. |
+| `events`, `stream`, `stream/promises`, `path`, `os`, `process` | Events, Node-style streams, paths, host information, and process interfaces. These streams are not Web Streams. |
+| `fs` | File access restricted to the plugin code directory and `__storageDir__` by default; escaping those roots requires `allowAllFileAccess`. |
+| `child_process` | Child process execution; requires `allowExec`. |
+| `net`, `http` | TCP/HTTP. Server listening requires `allowListen` and binds to `127.0.0.1` by default. Outbound connections do not require that permission. |
+| `tls` | Partial client implementation: `connect(options, callback?)` / `createConnection` with `host/port/servername/ca/socket`. No TLS server. |
+| `crypto` | Hashes, random values, key derivation, AES/ChaCha20-Poly1305, and common signing and verification operations. |
 
-The runtime does not provide the browser DOM, a global `WebSocket` constructor, `EventSource`, Web Streams, ESM `import` or `export`, or complete implementations of Node core modules such as `https`, `tls`, `dns`, `zlib`, and `worker_threads`. To accept WebSocket connections, use `req.upgradeWebSocket()` below. Metrics from `process.memoryUsage()` and `cpuUsage()` describe the whole Komari process, not an individual plugin. For complete compatibility boundaries, see `pkg/jsruntime/README.md` in the Komari repository.
+The `tls` client verifies certificates and requires TLS 1.2 or newer. A PEM string in `ca` can specify trusted certificates; `socket` can upgrade an existing `net.Socket` (a server name is required). Do not assume all Node.js TLS options work: for example, `rejectUnauthorized: false` does not disable verification. For HTTP/HTTPS requests, normally use `fetch`; no built-in `https` module is registered.
+
+**Module loading and packaging:**
+
+- The entry runs as a plain script with global lifecycle functions. It is not a CommonJS wrapper and does not receive `module` / `exports`. Files loaded through `require()` receive `exports/require/module/__filename/__dirname`.
+- Top-level `require("./lib.js")` resolves from the plugin code directory, even when the manifest entry is in a subdirectory; relative paths inside a module resolve from that module's directory. The loader supports `node_modules`, `.js` / `.json`, `package.json` `main`, directory `index.js/index.json` fallbacks, and module caching.
+- Path traversal and symlinks are checked by default. `require()` stays within the code directory: the existence of `__storageDir__` does not permit loading modules from persistent storage. In Node mode, `fs` can read and write within both confined roots. Escaping directory restrictions requires `allowAllFileAccess`.
+- Package resolution does not support `package.json` `exports/imports/type` rules or Node native extensions (`.node`). The plugin loading path does not provide an ESM `import/export` loader or execute TypeScript directly. Compile to a plain JavaScript entry and bundle dependencies or include CommonJS-loadable files in the ZIP. Host APIs required by npm packages must still fall within the compatibility surface above.
+
+**Compatibility limitations:**
+
+Plugins may extend built-in objects such as `Reflect` and their prototypes. Changes are local to the current runtime and are not shared with other plugins.
+
+- JavaScript callbacks in one plugin execute serially on its event loop. Promise/async-await does not parallelize synchronous CPU work; synchronous infinite loops remain subject to execution timeout interruption.
+- Timers return numeric handles without Node's `ref/unref/refresh/hasRef` methods. `setImmediate` uses a zero-delay timer and does not guarantee Node.js phase ordering.
+- `fetch` buffers request/response bodies and is subject to the HTTP body limit. `Response.body` is `null`; `Blob.stream()` is not a standard Web ReadableStream. Synchronous XHR blocks the plugin event loop.
+- There is no browser DOM, global `WebSocket` constructor, `EventSource`, or Web Streams. To accept WebSocket connections, use `req.upgradeWebSocket()` below. Core modules such as `dns`, `zlib`, and `worker_threads` are not registered as built-ins.
+- `process.memoryUsage()` and `cpuUsage()` describe the whole Komari process, not an individual plugin. An independent VM and filesystem restrictions do not provide OS-level process isolation.
 
 ## 5. `server` Module
 
@@ -1704,12 +1725,15 @@ The server fetches the catalog again, downloads the ZIP, validates its SHA-256, 
 | `server.registerRPC()` | Granted by default |
 | `server.getConfig()` | Granted by default |
 | `server.cron()` | Granted by default |
-| File access inside the plugin directory | Granted by default |
-| File access outside the plugin directory | `allowAllFileAccess` |
+| CommonJS loading inside the plugin code directory | Granted by default; does not require `node: true` |
+| `fs` access inside the code directory and `__storageDir__` | `node: true` |
+| File access outside these roots | `allowAllFileAccess`; `fs` also requires `node: true` |
 | `child_process` | `allowExec` and `node: true` |
 | Listening on a local port | `allowListen` and `node: true` |
 
 ### 10.2 Time and Capacity Limits
+
+The execution timeout applies to script initialization, function calls, and asynchronous callbacks, not the total lifetime of a plugin. The default HTTP client uses the same timeout. Configure it through `permissions.timeout` in the manifest.
 
 | Item | Current value |
 | --- | --- |
