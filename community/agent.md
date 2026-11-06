@@ -2,6 +2,20 @@
 
 Komari 社区成员们积极贡献并共同维护着一系列 Agent 项目。这些项目丰富了 Komari 的功能。感谢所有参与者的努力和贡献。
 
+## Komari-Agent-NodeJS
+
+> 项目地址：[Github](https://github.com/DsTansice/Komari-Agent-NodeJS)
+>
+> 开发者：[DsTansice](https://github.com/DsTansice)
+
+`Komari-Agent-NodeJS` 是一个使用 NodeJS 语言编写的 Komari 监控 Agent，适用于限制执行二进制探针但是能跑NodeJS的任何环境！
+
+支持配置环境变量或直接在脚本中修改参数运行，并同时兼容不同版本的 Komari 服务端：
+
+- **v1 版本**：适用于旧版 Komari 服务端。
+- **v2 版本**：适用于 Komari 1.5.1 及以上服务端。
+
+
 ## komari-zig-agent
 
 > 项目地址：[Github](https://github.com/luodaoyi/komari-zig-agent)
