@@ -35,3 +35,12 @@
 > 开发者：[inxen](https://github.com/inxen)
 
 `komari-agent-fpk` 把 komari-agent 打包成飞牛 fnOS 应用中心可直接安装的 `.fpk`。
+
+## luci-app-komariagent
+
+> 项目地址：[Github](https://github.com/inxen/luci-app-komariagent)
+>
+> 开发者：[inxen](https://github.com/inxen)
+
+`luci-app-komariagent` 是 Komari Agent 的 OpenWrt LuCI 管理插件，可在「服务 → Komari Agent」里完成二进制安装、连接配置与服务启停。
+
