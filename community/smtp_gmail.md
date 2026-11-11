@@ -30,7 +30,7 @@
 
 const SMTP = {
     host: "smtp.gmail.com",
-    port: 587,
+    port: 465,
 
     username: "你的谷歌邮箱",
     password: "应用专用密码",
