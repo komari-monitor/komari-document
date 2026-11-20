@@ -16,7 +16,7 @@ docker run -d \
   ghcr.io/komari-monitor/komari:latest
 ```
 
-> 实验性：可以指定数据库参数，不指定默认使用sqlite3，详见--help参数
+> 主配置库默认使用 SQLite（`/app/data/komari.db`）。如需将监控指标数据写入外部 MySQL 或 PostgreSQL，可在首次安装向导或后台设置中配置外部指标存储 DSN；运行 `--help` 可查看支持的服务端启动参数。
 
 
 ## 步骤 0：安装 Docker

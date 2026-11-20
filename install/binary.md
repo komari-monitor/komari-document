@@ -28,8 +28,8 @@
 1. 打开浏览器，访问 Komari 的 [GitHub Release 页面](https://github.com/komari-monitor/komari/releases)。
 2. 在页面上找到最新的版本（通常在最上面，标着类似 `v1.x.x`）。
 3. 根据你的操作系统选择对应的文件：
-   - **Linux**：下载类似 `komari_linux_amd64` 的文件（如果是 ARM 设备，选 `arm64`）。
-   - **Windows**：下载类似 `komari_windows_amd64.exe` 的文件。
+   - **Linux**：下载类似 `komari-linux-amd64` 的文件（如果是 ARM 设备，选 `komari-linux-arm64`）。
+   - **Windows**：下载类似 `komari-windows-amd64.exe` 的文件。
 4. 下载后，把文件放到一个方便操作的文件夹，比如：
    - Linux/Mac：可以放进 `~/komari` 文件夹（先运行 `mkdir ~/komari` 创建）。
    - Windows：可以放进 `C:\komari` 文件夹（手动新建一个文件夹）。

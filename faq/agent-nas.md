@@ -24,12 +24,12 @@
 5. 任务设置 - 运行命令用户定义的脚本填写以下内容，确定保存。
 ```bash
 chmod +x /volume1/homes/admin/komari/komari-agent
-nohup /volume1/homes/admin/komari/komari-agent -e http://127.0.0.1:8080 -t 1234567890abcdef &
+nohup /volume1/homes/admin/komari/komari-agent -e http://127.0.0.1:25774 -t 1234567890abcdef &
 ```
 6. 设置 - 勾选保存输出结果，下面选择一个文件夹保存计划任务的输出结果日志。 
 #### 注意
 + `/volume1/homes/admin/komari/komari-agent` 是你安装时复制的路径。 
-+ `-e http://127.0.0.1:8080 -t 1234567890abcdef` 是你在 komari-server 中获取到的运行所需参数。
++ `-e http://127.0.0.1:25774 -t 1234567890abcdef` 是你在 komari-server 中获取到的运行所需参数（请替换为实际的面板地址和端口）。
 
 
 ### 三. 运行 Komari Agent

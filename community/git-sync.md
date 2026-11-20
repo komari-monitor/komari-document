@@ -1,7 +1,7 @@
 # 将 Komari 节点 IP 自动同步到 Git
 
-:::warning 版本提示
-此功能将在下一个大版本 Komari `1.3` 中移除。请不要在新的生产环境中继续依赖该方案，已有部署也建议提前规划替代方案。
+:::warning 兼容性提示
+`komari-git-sync` 直接读取本地 SQLite 主库 `komari.db` 中的 `clients` 表。对于新版 Komari，建议优先通过官方 API / RPC 获取节点信息，避免未来数据库结构调整带来兼容性问题。
 :::
 
 > 项目地址：[Github](https://github.com/constansino/komari-git-sync)

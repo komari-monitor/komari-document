@@ -84,7 +84,7 @@ Agent v1 的 `/api/clients/report`、`/api/clients/uploadBasicInfo`、`/api/clie
 
 ## 拉取事件
 
-不支持 WebSocket 的设备应定时调用 `agent.pull`。服务端会在响应的 `result.events` 中返回 `agent.ping`、`agent.exec`、`agent.message`、`agent.event` 和 `agent.terminal.request` 事件：
+不支持 WebSocket 的设备应定时调用 `agent.pull`。服务端会在响应的 `result.events` 中返回待处理的 `agent.ping`、`agent.exec`、`agent.terminal.request`、`agent.file`、`agent.startupConfig` 或 `agent.switchVersion` 等事件：
 
 ```json
 {

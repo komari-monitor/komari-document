@@ -1,13 +1,27 @@
 # 非 Root 环境下安装和运行 Komari Agent
 
-在某些情况下，您可能没有 root 权限或希望在用户空间运行 Komari Agent。本文档将指导您如何在非 root 环境下安装、运行和保活 Komari Agent。
+在没有 root 权限或希望在用户空间运行 Komari Agent 时，可以优先使用官方安装脚本的用户级服务模式；如果目标环境不支持 `systemd --user`，也可以使用手动下载并配合 `nohup` / `screen` 的方式运行。
+
+## 方式一：直接使用官方安装脚本（推荐）
+
+官方 `install.sh` 支持在非 root 环境下自动安装用户级服务（Linux 下需要支持 `systemd --user`，macOS 下会安装为 LaunchAgent）：
+
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/komari-monitor/komari-agent/refs/heads/main/install.sh) -e https://your-komari-server.com -t your-token
+```
+
+- Linux 非 root 默认将程序安装在 `${XDG_DATA_HOME:-~/.local/share}/komari/agent`，并将服务文件写入 `~/.config/systemd/user/komari-agent.service`。
+- 查看状态与日志：`systemctl --user status komari-agent`、`journalctl --user -u komari-agent -f`。
+- 如需退出 SSH 后仍保持用户服务运行，可请管理员执行一次 `sudo loginctl enable-linger <用户名>`。
+
+## 方式二：手动下载与运行（无 systemd --user 环境）
 
 ## 前提条件
 
 - 具有一个普通用户账户
 - 确保用户具有写入主目录的权限
 - 确保系统已安装 `curl` 命令
-- 可选：安装 `screen` 或 `tmux` 用于后台运行（推荐）
+- 可选：系统已预装 `screen` 或 `tmux` 用于后台运行
 - 网络连接正常，可以访问 GitHub 和目标监控服务器
 
 ## 1. 确定系统架构
@@ -107,7 +121,7 @@ ps aux | grep komari-agent
 
 ## 6. 保活 Komari Agent
 
-由于非 root 环境无法使用 systemd 服务，需要使用其他方法确保 Komari Agent 持续运行。
+如果环境不支持 `systemd --user` 用户级服务，可以使用以下方法确保 Komari Agent 在后台持续运行。
 
 ### 方法一：使用 nohup
 
@@ -130,19 +144,9 @@ tail -f komari.log
 kill [PID]
 ```
 
-### 方法二：使用 screen（推荐）
+### 方法二：使用 screen（如系统已安装）
 
-`screen` 是一个终端复用器，可以让程序在后台持续运行，即使 SSH 连接断开。
-
-**安装 screen（如果尚未安装）**
-
-```bash
-# Ubuntu/Debian
-sudo apt install screen
-
-# CentOS/RHEL
-sudo yum install screen
-```
+`screen` 是一个终端复用器，可以让程序在后台持续运行，即使 SSH 连接断开（如未安装且无 `sudo` 权限，请改用上方的 `nohup` 或 `tmux`）。
 
 **使用 screen 运行 Agent**
 

@@ -7,28 +7,28 @@ If password login has been disabled and you cannot sign in through another metho
 Run the command in the directory that contains the Komari executable and data directory:
 
 ```bash
-./komari permit-password-login
+./komari permit-login
 ```
 
 On Windows:
 
 ```powershell
-.\komari.exe permit-password-login
+.\komari.exe permit-login
 ```
 
 If the database is not in the default location, specify it with `-d`:
 
 ```bash
-./komari permit-password-login -d /path/to/data/komari.db
+./komari permit-login -d /path/to/data/komari.db
 ```
 
 ## Docker Deployment
 
 ```bash
-docker exec komari /app/komari permit-password-login
+docker exec komari /app/komari permit-login
 ```
 
-Restart Komari if the change is not reflected immediately:
+Restart Komari to apply the change:
 
 ```bash
 docker restart komari

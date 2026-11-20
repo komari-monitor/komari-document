@@ -26,13 +26,13 @@ theme.zip
 ```json
 {
   "name": { "zh-CN": "Komari 测试主题", "en": "Komari Test Theme" },
-  "short": "TestTheme", // 唯一标识符，只能包含大小写字母、数字、下划线和连字符
+  "short": "TestTheme",
   "description": { "zh-CN": "用于 Komari 的测试主题", "en": "A test theme for Komari" },
   "version": "1.0.0",
   "author": "Akizon77",
   "url": "https://github.com/komari-monitor/komari",
   "preview": "preview.png",
-  "configuration": {} // >= 1.0.5 支持
+  "configuration": {}
 }
 ```
 
@@ -65,7 +65,7 @@ theme.zip
 
 | `type`     | `configuration.data`                  | 后台行为                                                                                              |
 | ---------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `managed`  | 配置项数组                            | 在后台生成主题设置表单，保存后的值会通过 [/api/public](./api#服务端公开属性) 的 `theme_settings` 公开 |
+| `managed`  | 配置项数组                            | 在后台生成主题设置表单，保存后的值会通过 [/api/public](./api#_3-7-公开站点设置) 的 `theme_settings` 公开 |
 | `raw`      | 非空 HTML 字符串 (服务端>1.2.0可用)   | 在后台主内容区域通过 iframe 渲染该 HTML，适合主题自带的完整配置面板                                   |
 | `redirect` | 站内相对路径字符串 (服务端>1.2.0可用) | 点击主题菜单时跳转到站点根目录下的该路径，适合跳转到主题提供的页面或已有站内路由                      |
 
@@ -226,7 +226,7 @@ theme.zip
 }
 ```
 
-这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。
+这些数据是公开可读的，请不要把密钥、Token、私密 URL 等敏感信息放入主题动态配置。对已安装的自定义 `managed` 主题（非内置 `default` 主题），服务端会在读取 `theme_settings` 时自动补齐清单中的默认值，并过滤已删除的节点或 Ping 任务 ID。
 
 `raw` 和 `redirect` 不会生成 `theme_settings` 表单；它们只负责定义后台主题菜单点击后的呈现方式。`raw` 的 HTML 来自主题包本身，请只安装可信来源的主题。
 
@@ -364,8 +364,10 @@ Komari 系统包含以下特殊页面，这些页面不受主题影响：
 
 主题开发中，以下本地存储字段用于承载用户个性化配置。默认主题已采用相同字段，自定义主题可直接兼容复用：
 
-| `appearance` | "light" \| "dark" \| "system" | 明暗主题设置 |
-| `language` | string | 语言设置，例如 "zh-CN" |
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `appearance` | `"light" \| "dark" \| "system"` | 明暗主题设置 |
+| `language` | `string` | 语言设置，例如 `"zh-CN"` |
 
 #### 实现建议
 

@@ -64,21 +64,24 @@ Browser clients use the `session_token` cookie returned by `/api/login`. Unless 
 
 ### 1.3 Client Token
 
-Agent endpoints accept a node's Client Token in any of these forms:
+Agent endpoints accept a node's Client Token through query parameters:
 
 ```text
 ?token=<client-token>
 ?Authorization=<client-token>
-Authorization: Bearer <client-token>
 ```
 
-The token can also be included in a JSON request body:
+For uncompressed non-GET JSON requests, the token can also be included at the top level of the JSON request body:
 
 ```json
 {
   "token": "<client-token>"
 }
 ```
+
+::: tip Tip
+The `Authorization: Bearer <token>` header is reserved for administrator API Keys and `/api/clients/register` AutoDiscovery keys, not Client Tokens. Pass the Client Token via query parameters when connecting over WebSocket or sending `Content-Encoding: gzip` requests.
+:::
 
 ## 2. Conventions
 
@@ -142,7 +145,7 @@ When `private_site` is enabled, unauthenticated visitors receive:
 }
 ```
 
-The login flow can still use `/api/login`, `/api/me`, `/api/public`, `/api/version`, and `/api/oauth`.
+Whitelisted paths such as `/ping`, `/api/login`, `/api/me`, `/api/public`, `/api/version`, `/api/oauth`, `/api/oauth_callback`, and `/api/recent` remain accessible. Because `/api/rpc2` passes through the global `PrivateSiteMiddleware`, anonymous callers still need a session or a valid `temp_key` cookie when `private_site` is enabled.
 
 ### 2.4 Two-Factor Authentication
 
@@ -153,12 +156,14 @@ These endpoints may require an administrator 2FA code:
 - `POST /api/admin/2fa/disable`
 - Creating a new terminal session with `GET /api/admin/client/:uuid/terminal`
 
-Komari reads the code in this order:
+For REST endpoints, Komari reads the 2FA code in this order:
 
-1. `2fa_code`, `two_factor_code`, or `otp` in the JSON body
-2. The `X-2FA-Code` header
-3. The `X-Two-Factor-Code` header
-4. The `2fa_code`, `two_factor_code`, or `otp` query parameter
+1. The `X-2FA-Code` header
+2. The `X-Two-Factor-Code` header
+3. The `2fa_code`, `two_factor_code`, or `otp` query parameter
+4. `2fa_code`, `two_factor_code`, or `otp` in the JSON body (`POST /api/admin/update/user` reads `2fa_code` from the body directly)
+
+When calling sensitive RPC methods via `/api/rpc2`, Komari checks `params` (`2fa_code`, `two_factor_code`, `otp`) first before falling back to headers and query parameters.
 
 API key requests do not require a separate 2FA code. Accounts without 2FA are also exempt.
 
@@ -306,7 +311,7 @@ OAuth callback. On success, redirects to `/admin/dashboard`.
 
 **Endpoint:** `GET /api/me`
 
-**Authentication:** Optional. Returns Guest information when signed out.
+**Authentication:** Optional (`session_token` cookie only). Returns Guest information when signed out or when called with an API key.
 
 ```bash
 curl -s "$BASE/api/me"
@@ -384,7 +389,7 @@ Only files declared as public plugin pages and files in the same directory are a
 
 | Query parameter | Required | Description |
 | --- | --- | --- |
-| `name` | No | Node name. A random name is generated when omitted. |
+| `name` | No | Node name suffix (the server automatically prepends `Auto-`). A random suffix is generated when omitted. |
 
 ```bash
 curl -s -X POST "$BASE/api/clients/register?name=web-01" \
@@ -397,7 +402,7 @@ curl -s -X POST "$BASE/api/clients/register?name=web-01" \
 
 **Authentication:** Client Token.
 
-The body contains one Agent v2 JSON-RPC request. Gzip-compressed request bodies are supported through `Content-Encoding: gzip`.
+The body contains one Agent v2 JSON-RPC request. Gzip-compressed request bodies are supported through `Content-Encoding: gzip`. When the RPC call returns an error, this HTTP endpoint responds with `400 Bad Request` and the JSON-RPC error payload.
 
 ```bash
 curl -s -X POST "$BASE/api/clients/v2/rpc?token=$CLIENT_TOKEN" \
@@ -423,10 +428,10 @@ The server can push these methods:
 
 - `agent.exec`
 - `agent.ping`
-- `agent.message`
-- `agent.event`
 - `agent.terminal.request`
 - `agent.file`
+- `agent.startupConfig`
+- `agent.switchVersion`
 
 ### 4.4 File Transfer Relay
 
@@ -500,7 +505,6 @@ curl -s -X POST "$BASE/api/admin/task/exec" \
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET/POST` | `/api/admin/settings/` | Read or update settings. |
-| `GET/POST` | `/api/admin/settings/message-sender` | Read or update message providers. |
 | `GET/POST` | `/api/admin/settings/oidc` | Read or update OIDC providers. |
 
 ```bash
@@ -532,10 +536,9 @@ A terminal session produces a single audit record: it is written when the sessio
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/api/admin/notification/load/` | List load notifications. |
-| `POST` | `/api/admin/notification/load/add` | Create a load notification. |
-| `POST` | `/api/admin/notification/load/edit` | Edit load notifications. |
-| `POST` | `/api/admin/notification/load/delete` | Delete load notifications. |
+| `GET` | `/api/admin/notification/channels` | List registered notification channels (`webhook`, `Javascript`, and plugin channels). |
+| `GET` | `/api/admin/notification/channel/configuration?id=` | Read a notification channel schema and saved values. |
+| `POST` | `/api/admin/notification/channel/configuration` | Save notification channel configuration (`{ id, data }`). |
 | `GET` | `/api/admin/notification/offline` | List offline notifications. |
 | `POST` | `/api/admin/notification/offline/edit` | Edit offline notifications. |
 | `POST` | `/api/admin/notification/offline/enable` | Enable offline notifications. |
@@ -564,6 +567,7 @@ A terminal session produces a single audit record: it is written when the sessio
 | `GET` | `/api/admin/plugin/logs?short=` | Read plugin logs. |
 | `POST` | `/api/admin/plugin/delete` | Delete a plugin. |
 | `GET/POST` | `/api/admin/plugin/configuration` | Read or save plugin configuration. |
+| `GET` | `/api/admin/plugin/:short/*filepath` | Serve admin plugin iframe static files. |
 | `GET/POST/PUT/DELETE` | `/api/admin/plugin/market/sources/:id?` | Manage plugin market sources. |
 | `GET` | `/api/admin/plugin/market/catalog?refresh=` | Read the plugin market catalog. |
 | `POST` | `/api/admin/plugin/market/install` | Install a plugin from the market. |
@@ -860,7 +864,7 @@ API Key > session_token cookie > Client Token > anonymous
 
 ### 9.3 Private Site Whitelist
 
-Anonymous visitors may call:
+Inside the RPC2 dispatcher, the whitelist permits anonymous calls to:
 
 ```text
 public:getMe
@@ -868,7 +872,7 @@ public:getPublicSettings
 public:getVersion
 ```
 
-A valid temporary share cookie also allows anonymous `public:*` calls.
+A valid `temp_key` cookie also allows anonymous `public:*` calls. Note that `/api/rpc2` itself passes through the global `PrivateSiteMiddleware`, so unauthenticated callers without a `temp_key` cookie receive `401` before reaching the dispatcher.
 
 ### 9.4 Sensitive Methods
 
@@ -1021,10 +1025,9 @@ All methods in this section require the `admin` role.
 
 | Method | Parameters |
 | --- | --- |
-| `admin:addLoadNotification` | `{ clients, metric, threshold, ratio, interval, name? }` |
-| `admin:deleteLoadNotification` | `{ id: number[] }` |
-| `admin:editLoadNotification` | `{ notifications: LoadNotification[] }` |
-| `admin:getAllLoadNotifications` | None |
+| `admin:listNotificationChannels` | None |
+| `admin:getNotificationChannelConfiguration` | `{ id }` |
+| `admin:setNotificationChannelConfiguration` | `{ id, data }` |
 | `admin:listOfflineNotifications` | None |
 | `admin:editOfflineNotification` | `OfflineNotification[]` |
 | `admin:enableOfflineNotification` | `string[]` |
@@ -1035,8 +1038,6 @@ All methods in this section require the `admin` role.
 
 | Method | Parameters |
 | --- | --- |
-| `admin:getMessageSenderProvider` | `{ provider? }` |
-| `admin:setMessageSenderProvider` | `{ name, addition }` |
 | `admin:getOidcProvider` | `{ provider? }` |
 | `admin:setOidcProvider` | `{ name, addition }` |
 
@@ -1049,9 +1050,10 @@ All methods in this section require the `admin` role.
 | `admin:dbQuery` | `{ database?, sql, args?, limit? }` |
 | `admin:dbExec` | `{ database?, sql, args? }` |
 | `admin:dbTables` | `{ database? }` |
-| `admin:getLogs` | `{ limit?, page?, msg_type? }` |
+| `admin:getLogs` | `{ limit?, page?, msg_type?, q? }` |
 | `admin:testGeoip` | `{ ip? }` |
 | `admin:testSendMessage` | None |
+| `admin:getLastRunVersion` | None |
 
 ### 14.8 Plugins and Metrics
 

@@ -36,9 +36,10 @@ Replace `https://example.com` with your Komari server URL and `<AD Key>` with th
 | `--disable-auto-update` | `false` | Disable automatic updates |
 | `--disable-web-ssh` | `false` | Disable remote control features such as Web SSH and remote execution |
 | `-u, --ignore-unsafe-cert` | `false` | Ignore invalid TLS certificates |
-| `-i, --interval` | `1.0` | Monitoring report interval in seconds |
+| `-i, --interval` | `3.0` | Monitoring report interval in seconds |
 | `--info-report-interval` | `5` | Basic information report interval in minutes |
-| `--memory-mode-available` | `false` | Report available-memory mode instead of used-memory mode |
+| `--memory-include-cache` | `false` | Include cache and buffers in memory usage |
+| `--memory-exclude-bcf` | `false` | Calculate used memory as `Total - Free - Buffers - Cached` (replaces deprecated `--memory-mode-available`) |
 | `-r, --max-retries` | `3` | Maximum retry count |
 | `-c, --reconnect-interval` | `5` | Reconnect interval in seconds |
 | `--include-nics` | none | Comma-separated network interfaces to include |
@@ -52,9 +53,10 @@ These parameters affect the install script and are not written into the agent ru
 
 | Parameter | Default | Description |
 | --- | --- | --- |
-| `--install-dir` | `/opt/komari` on Linux, `$Env:ProgramFiles\Komari` on Windows | Agent installation directory |
+| `--install-dir` | `/opt/komari` (Linux root), `~/.local/share/komari` (Linux non-root), `/usr/local/komari` or `~/.komari` (macOS), `$Env:ProgramFiles\Komari` (Windows) | Agent installation directory |
 | `--install-service-name` | `komari-agent` | System service name |
 | `--install-ghproxy` | none | GitHub proxy used to accelerate downloads |
+| `--install-no-mirror` | `false` | Disable download mirrors and fetch directly from GitHub |
 | `--install-version` | `latest` | Agent version to install; use `snapshot` to install the latest snapshot automatically |
 
 ## Examples
@@ -101,6 +103,6 @@ done
 
 - Check that the target server can reach the Komari endpoint.
 - Verify that the auto discovery key is correct.
-- Run the installer as an administrator or root user.
+- Run the installer as an administrator/root user for system-wide services (non-root Linux users with `systemd --user` and macOS users install user services).
 - Avoid `--ignore-unsafe-cert` in production.
-- Inspect logs with `sudo journalctl -u komari-agent -f` on Linux.
+- Inspect logs with `sudo journalctl -u komari-agent -f` (or `journalctl --user -u komari-agent -f` for non-root user services) on Linux.

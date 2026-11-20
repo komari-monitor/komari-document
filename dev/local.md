@@ -6,9 +6,11 @@ Komari 使用了 Go + React 技术栈进行开发。如果您想在本地进行�
 
 0. 安装 [Git](https://git-scm.com/)。
 
-1. 安装 [Go](https://go.dev/dl/)（建议版本 1.24 及以上）。
+1. 安装 [Go](https://go.dev/dl/)（`komari-server` 要求 `1.25` 及以上；`komari-agent` 要求 `1.24` 及以上）。
 
-2. 安装 [Node.js](https://nodejs.org/)（建议版本 20 及以上）。
+2. 安装 [Node.js](https://nodejs.org/)（建议版本 `22` 及以上）。
+
+3. 安装 `zstd` 与 C 编译器（如 Linux 下 `gcc` / `build-essential`），因为服务端依赖 `go-sqlite3`（需要 `CGO_ENABLED=1`）。
 
 ## 克隆源码
 
@@ -56,12 +58,19 @@ cp komari-theme.json ../komari/web/public/defaultTheme/
 
 ```bash
 cd ../komari
-go run main.go server -l localhost:25774
+CGO_ENABLED=1 go run . server -l 127.0.0.1:25774
+```
+
+如仅调试前端页面，可在打包一次默认主题后保持后端运行，并在 `komari-web` 目录启动 Vite 开发服务器（通过 `VITE_API_TARGET` 将 `/api` 与 `/themes` 代理到后端）：
+
+```bash
+cd ../komari-web
+VITE_API_TARGET=http://127.0.0.1:25774 npm run dev
 ```
 
 ## 启动 Agent 服务
 
 ```bash
 cd ../komari-agent
-go run main.go --disable-auto-update -e http://localhost:25774 -t <Your Token>
+go run . --disable-auto-update -e http://127.0.0.1:25774 -t <Your Token>
 ```

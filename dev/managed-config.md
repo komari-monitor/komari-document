@@ -63,7 +63,7 @@
 ```
 
 前端按以下顺序回退：精确匹配 → 规范化匹配（`-` / `_` 互通，如 `zh-CN` 与
-`zh_CN` 等价）→ 基础语言（`zh`）
+`zh_CN` 等价）→ 基础语言（`zh`）→ 语言族前缀 → 对象第一个值
 
 ## 默认值合并规则
 
@@ -74,9 +74,19 @@
 | `select` | `options` 第一个选项 |
 | `number` | `0` |
 | `switch` | `false` |
-| `nodes` / `pingtasks` | `[]` |
+| `nodes` / `pingtasks` | 存储为 `"[]"`，输出为 `[]` |
 | 其他 | `""` |
 
+## 选择器的存储与输出
+
+`nodes` 与 `pingtasks` 在底层始终以 JSON 数组字符串形式保存，服务端会在读取时解码为数组并过滤掉已删除的节点或 Ping 任务：
+
+```json
+{
+  "selected_nodes": "[\"uuid-a\",\"uuid-b\"]",
+  "selected_ping_tasks": "[1,2]"
+}
+```
 
 对应输出：
 

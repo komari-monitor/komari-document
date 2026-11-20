@@ -25,7 +25,7 @@ docker run -d \
 docker logs komari
 ```
 
-访问 `http://<your-ip>:25774` 即可看到 Komari 的仪表盘。
+首次访问 `http://<your-ip>:25774` 会进入安装向导，创建管理员账号并完成站点配置。
 
 ## 其他安装方式
 
@@ -36,3 +36,4 @@ docker logs komari
 - [手动编译](/install/compile)
 - [1Panel 部署](/install/1panel)
 - [更新](/install/update)
+- [Agent 自动发现](/install/agent-ad)

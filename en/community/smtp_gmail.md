@@ -1,6 +1,10 @@
 # Send Notifications with Gmail
 
-Komari can send email notifications through Gmail SMTP when Gmail account settings permit it.
+:::warning Version notice
+Current versions of Komari have removed the built-in `email` (SMTP) notification channel and only include `webhook` and `Javascript` channels by default. On current versions, send emails via a plugin (`server.registerNotificationChannel`) or an HTTP-to-SMTP relay using `webhook` / `Javascript`. The Gmail SMTP details below apply to older versions or external SMTP relays.
+:::
+
+Komari can send email notifications through Gmail SMTP when configured with a compatible version or relay.
 
 ## Setup Outline
 

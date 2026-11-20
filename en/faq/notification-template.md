@@ -1,18 +1,36 @@
 # Notification Templates
 
-Komari notification templates let you customize how notification events are rendered and sent.
+Komari notification templates let you customize how notification messages are rendered before being passed to built-in notification channels (`webhook` and `Javascript`) or plugin-registered notification channels.
 
-## Use Cases
+## Template Variables
 
-- Change message text for offline, recovery, load, and traffic events.
-- Format messages for providers such as Telegram, email, webhook, Bark, and ServerChan.
-- Add contextual data from the event payload.
+Wrap variables in double curly braces (for example `{{event}}`):
 
-## Template Development Notes
+| Variable | Type | Description | Example |
+| --- | --- | --- | --- |
+| `event` | string | Event name (`Offline`, `Online`, `Expire`, `Renew`, `Login`, `Traffic`, `Alert`, or `Test`) | `Offline` |
+| `client` | string | Comma-separated client names (`clients` is an alias) | `web-01, db-01` |
+| `time` | string | Event time formatted in the server's local timezone (`YYYY-MM-DD HH:MM:SS`) | `2024-01-15 22:30:25` |
+| `message` | string | Detailed message or error description | `Server offline` |
+| `emoji` | string | Emoji icon associated with the event | `🔴` |
 
-- Keep secrets outside public templates.
-- Validate that every branch returns a readable message.
-- Test templates with non-production notifications before enabling them broadly.
-- Avoid sending overly large payloads to providers with strict message limits.
+## Example Template
 
-The full Chinese reference contains complete JavaScript examples and event payload notes: [Notification templates](/faq/notification-template).
+```text
+{{emoji}}{{emoji}}{{emoji}}
+Event: {{event}}
+Clients: {{client}}
+Message: {{message}}
+Time: {{time}}
+```
+
+## JavaScript Channel Contract
+
+The built-in `Javascript` channel requires `sendMessage(message, title)` returning a boolean (or `Promise<boolean>`). You can also optionally implement `sendEvent(event)` to receive the raw event object (`{ event, clients, time, message, emoji }`, where `time` is serialized as UTC RFC3339 `...Z`).
+
+## Notes
+
+- Keep secrets outside public templates and test changes with **Send Test Message** before enabling broadly.
+- Built-in channels are `webhook` and `Javascript`; additional channels can be added through JavaScript plugins (`server.registerNotificationChannel`).
+
+The full Chinese reference includes complete Telegram, Bark, and Webhook JavaScript examples: [Notification templates](/faq/notification-template).

@@ -15,7 +15,7 @@ docker run -d \
 ```
 
 :::tip
-If no external database options are provided, Komari uses SQLite by default. Run the container with `--help` to inspect supported startup flags.
+The main database uses SQLite (`/app/data/komari.db`) by default. To store time-series metrics in an external MySQL or PostgreSQL database, configure the metric store DSN in the `/install` wizard or admin settings. Run the container with `--help` to inspect supported startup flags.
 :::
 
 ## Install Docker

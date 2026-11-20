@@ -1,19 +1,30 @@
 # GitHub OAuth Login
 
-Komari can use GitHub OAuth as a single sign-on provider.
+Komari supports GitHub OAuth (as well as generic OIDC and QQ) as a single sign-on provider.
 
-## High-level Setup
+## 1. Enable SSO and Copy the Callback URL
 
-1. Create an OAuth application in GitHub.
-2. Configure the callback URL to point to your Komari instance.
-3. Copy the client ID and client secret into the Komari admin dashboard.
-4. Save the settings and test sign-in with a GitHub account.
+1. In the Komari admin dashboard, go to **Settings → Login** (or **SSO**).
+2. Enable single sign-on and select `github` as the provider.
+3. Note the callback URL, which uses the form:
+   `https://<your-domain>/api/oauth_callback`
+
+## 2. Create a GitHub OAuth App
+
+1. Open GitHub [Developer applications](https://github.com/settings/developers) and click **New OAuth App**.
+2. Set the **Authorization callback URL** to `https://<your-domain>/api/oauth_callback`.
+3. Click **Register application**, then click **Generate a new client secret** and copy both the **Client ID** and **Client secret**.
+
+## 3. Configure and Bind Your Account
+
+1. Paste the **Client ID** and **Client secret** into **Settings → Login** in Komari and save.
+2. Go to **Settings → Account** and bind the GitHub account that will be used to sign in. (Signing in via OAuth fails unless an admin account has been bound first.)
+3. Optionally enable **Disable password login** once you have verified OAuth sign-in works.
 
 ## Notes
 
-- The public Komari URL must match the callback URL.
-- Use HTTPS in production.
-- Keep the client secret private.
-- Ensure password login or another recovery method is available before relying only on OAuth.
+- The public Komari URL and reverse proxy `Host` / `X-Forwarded-Proto` headers must match the configured callback URL.
+- Use HTTPS in production and keep the client secret private.
+- Keep password login enabled or know how to run `komari permit-login` before disabling password authentication.
 
-For the current Chinese walkthrough, see [GitHub OAuth login](/faq/oauth-github).
+For the Chinese walkthrough, see [GitHub OAuth login](/faq/oauth-github).

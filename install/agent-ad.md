@@ -49,9 +49,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iwr 'https://raw.git
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `-i, --interval` | `1.0` | 数据上报间隔（秒） |
+| `-i, --interval` | `3.0` | 数据上报间隔（秒） |
 | `--info-report-interval` | `5` | 基础信息上报间隔（分钟） |
-| `--memory-mode-available` | `false` | 内存使用率报告为可用内存而非已用内存 |
+| `--memory-include-cache` | `false` | 内存使用量包含缓存与缓冲区 |
+| `--memory-exclude-bcf` | `false` | 使用 `Total - Free - Buffers - Cached` 计算已用内存（替代已弃用的 `--memory-mode-available`） |
 
 #### 网络和重连
 
@@ -82,9 +83,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iwr 'https://raw.git
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--install-dir` | `/opt/komari` (Linux)<br/>`$Env:ProgramFiles\Komari` (Windows) | 指定 Agent 安装目录 |
+| `--install-dir` | `/opt/komari` (Linux root)<br/>`~/.local/share/komari` (Linux 非 root)<br/>`/usr/local/komari` 或 `~/.komari` (macOS)<br/>`$Env:ProgramFiles\Komari` (Windows) | 指定 Agent 安装目录 |
 | `--install-service-name` | `komari-agent` | 指定系统服务名称 |
-| `--install-ghproxy` | 无 | 指定 GitHub 代理地址,用于加速下载 |
+| `--install-ghproxy` | 无 | 指定 GitHub 代理地址，用于加速下载 |
+| `--install-no-mirror` | `false` | 禁用下载镜像，直接从 GitHub 获取 |
 | `--install-version` | `latest` | 指定要安装的 Agent 版本；设为 `snapshot` 时自动安装最新的快照版本 |
 
 ## 使用示例
@@ -183,7 +185,7 @@ done
 
 1. **自动发现密钥安全**：请确保 AD Key 的安全性，不要在公开场合暴露
 2. **网络连通性**：确保目标服务器能够访问 Komari 服务器地址
-3. **权限要求**：安装脚本需要管理员权限
+3. **权限要求**：root 用户可安装系统级服务；非 root 用户在支持 `systemd --user` 的 Linux 或 macOS 上也可安装用户级服务
 4. **防火墙设置**：确保必要的端口已开放
 5. **证书验证**：生产环境中避免使用 `--ignore-unsafe-cert` 参数
 
@@ -201,10 +203,13 @@ done
 Agent 安装完成后，可以通过以下方式查看日志：
 
 ```bash
-# Linux
+# Linux (systemd 系统服务)
 sudo journalctl -u komari-agent -f
 
-# 或查看日志文件
+# Linux (非 root systemd --user 用户服务)
+journalctl --user -u komari-agent -f
+
+# macOS (LaunchDaemon)
 tail -f /var/log/komari-agent.log
 ```
 

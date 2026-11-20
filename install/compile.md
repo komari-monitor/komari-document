@@ -1,5 +1,7 @@
 # 手动编译安装
 
+环境要求：Go `1.25+`、Node.js `22+`、`zstd` 以及 C 编译器（如 `gcc` / `build-essential`，供 `CGO_ENABLED=1` 编译 `go-sqlite3` 使用）。
+
 1. 构建前端静态文件：
    ```bash
    git clone https://github.com/komari-monitor/komari-web

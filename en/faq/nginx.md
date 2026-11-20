@@ -30,6 +30,7 @@ server {
 - `Upgrade` and `Connection` headers allow WebSocket upgrades.
 - `proxy_buffering off` helps with real-time behavior.
 - `client_max_body_size 50M` allows larger uploads.
+- `proxy_set_header Host $host` and `X-Forwarded-Proto $scheme` are required for Origin/CORS checks, OAuth callback URL construction, and `Secure` cookies.
 
 Reload Nginx after editing:
 
@@ -37,8 +38,8 @@ Reload Nginx after editing:
 sudo nginx -s reload
 ```
 
-## WebSocket Troubleshooting
+## WebSocket and Origin Troubleshooting
 
 Starting with Komari `1.0.8`, the built-in theme can fall back to POST requests for most features when WebSocket is unavailable. The terminal still requires WebSocket. Some third-party themes may also require WebSocket.
 
-If WebSocket fails, check the proxy config and the WebSocket Origin settings in the Komari admin dashboard.
+Komari enables both API CORS Origin checking (`cors_origin_check_enabled`) and WebSocket Origin checking (`ws_origin_check_enabled`) by default. If API or WebSocket requests return `403`, verify `proxy_set_header Host $host;` or configure the allowed origins / origin checks in the admin site settings.

@@ -33,12 +33,13 @@ server {
 
 - `proxy_set_header Upgrade $http_upgrade;` 和 `proxy_set_header Connection "Upgrade";` 确保启用 WebSocket
 - `proxy_http_version 1.1;` 必须设置为 1.1，WebSocket 仅支持 HTTP/1.1。
-- 其他 `proxy_set_header` 用于保留客户端真实 IP 和主机信息。
+- `proxy_set_header Host $host;` 与 `proxy_set_header X-Forwarded-Proto $scheme;` 用于保留真实访问域名与协议，服务端会基于 `Host` 校验 HTTP API 与 WebSocket 的 `Origin` 请求头，并据此拼接 OAuth 回调地址与 Cookie `Secure` 属性。
 
 ## 3. 常见问题
 
 - **连接失败/断开**：请确认后端服务监听地址与端口正确，且 Nginx 配置已 reload。
-- **实在无法处理 ws 反向代理**：1.0.8 版本开始，只有终端强制使用 WebSocket，如果无法建立 ws 连接，会回落到 POST 请求（仅默认主题）。部分第三方主题可能需要 WebSocket 支持，此时可以在 `后台-设置-站点` 中关闭 `WebSocket Origin 校验`，或将实际访问地址加入 `WebSocket Origin 允许列表`。
+- **HTTP API / WebSocket 报 `403`（Origin 校验失败）**：服务端默认开启 `cors_origin_check_enabled`（校验所有 `/api/*` 请求的 `Origin` 与 `Host`）和 `ws_origin_check_enabled`（校验 WebSocket 的 `Origin`）。如通过反代或独立域名访问出现跨域拦截，请检查 `proxy_set_header Host $host;` 是否正确透传，或在 `后台-设置-站点` 中调整对应的 `CORS` / `WebSocket Origin` 校验与允许列表。
+- **实在无法处理 ws 反向代理**：1.0.8 版本开始，只有终端强制使用 WebSocket，如果无法建立 ws 连接，会回落到 POST 请求（仅默认主题）。部分第三方主题可能需要 WebSocket 支持。
 
 ## 4. 应用配置
 

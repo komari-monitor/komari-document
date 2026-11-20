@@ -1,4 +1,9 @@
 # 利用谷歌邮箱发送通知
+
+:::warning 版本提示
+当前版本 Komari 已移除内置的 `email`（SMTP）通知渠道，仅保留内置的 `webhook` 与 `Javascript` 渠道。若使用当前版本，请通过支持发送邮件的插件（`server.registerNotificationChannel`），或配合外部 HTTP-to-SMTP 网关使用 `webhook` / `Javascript` 渠道。以下教程仅适用于仍保留内置 `email` 渠道的旧版本参考。
+:::
+
 ### 前置条件
 >拥有一个谷歌账号[注册](https://support.google.com/accounts/answer/27441)
 >

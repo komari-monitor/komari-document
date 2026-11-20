@@ -75,9 +75,9 @@ Global Flags:
    
 ## 5. 验证
 
-- 成功执行后，终端会提示 “Force permit password login”。
-- 重启 Komari（如需要）：
-  - 二进制部署：重新运行 `komari server`；
+- 成功执行后，终端会输出 `Password login has been permitted.` 和 `Please restart the server to apply the changes.`。
+- 重启 Komari 使配置生效：
+  - 二进制部署：重启 `komari server` 进程或对应的 systemd 服务；
   - Docker 部署：使用 `docker restart komari` 重启容器。
 - 用浏览器访问 Komari（例如 `http://localhost:25774` 或服务器 IP），尝试用账号密码登录验证效果。
 

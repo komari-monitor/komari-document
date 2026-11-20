@@ -19,7 +19,7 @@ Komari 支持通过 **JavaScript 插件** 扩展服务端能力。插件是一�
 - [7. 插件配置](#_7-插件配置)
 - [8. 插件自有 RPC](#_8-插件自有-rpc)
 - [9. 插件管理 HTTP 接口](#_9-插件管理-http-接口)
-- [10. 权限、限制与错误](#_10-权限限制与错误)
+- [10. 权限、限制与错误](#_10-权限、限制与错误)
 
 ## 1. 快速开始
 
@@ -657,7 +657,7 @@ function load() {
 }
 ```
 
-具体 RPC 方法的参数、返回和错误语义请查阅 [RPC 方法](/dev/api#7-json-rpc-快速开始)。
+具体 RPC 方法的参数、返回和错误语义请查阅 [RPC 方法](/dev/api#_7-json-rpc-快速开始)。
 
 ### 5.4 `server.hook(kind, fn)` / `server.hook(kind, matcher, fn)`
 
@@ -1109,6 +1109,62 @@ function load() {
 }
 ```
 
+### 5.9 `server.registerNotificationChannel(id, configuration, handler)`
+
+**说明：** 向系统注册一个由插件实现的通知渠道，管理员可在后台“通知设置”中选择该渠道并填写其托管配置表单；插件卸载时会自动注销。
+
+**权限：** 默认授予，无需 manifest 声明。
+
+**参数：**
+
+| 参数            | 类型                                     | 必填 | 说明                                                               |
+| --------------- | ---------------------------------------- | ---- | ------------------------------------------------------------------ |
+| `id`            | `string`                                 | 是   | 唯一渠道标识，不能为空且不能与内置或其他插件已注册的渠道 ID 冲突   |
+| `configuration` | `object`                                 | 是   | 托管配置定义对象（与 [托管配置](/dev/managed-config) 结构一致；省略 `type` 时默认按 `managed` 处理） |
+| `handler`       | `(notification, config) => void \| Promise<void>` | 是   | 发送通知时触发的回调函数；可同步返回或返回 `Promise`               |
+
+`handler` 接收两个参数：
+
+- `notification`：`{ event, title, message }`，其中 `event` 为 `EventMessage`（包含 `event`、`clients`、`time`、`message`、`emoji`），`title` 为事件名字符串，`message` 为经系统通知模板渲染后的文本。
+- `config`：按 `configuration` 解析后的当前已保存配置对象（缺失字段已按规则补全默认值，选择器字段已转为数组）。
+
+**返回：** `undefined`。
+
+**示例：**
+
+```js
+const server = require("server");
+
+function load() {
+  server.registerNotificationChannel(
+    "custom-webhook",
+    {
+      type: "managed",
+      name: "自定义通知渠道",
+      data: [
+        { key: "endpoint", name: "Webhook URL", type: "string", required: true },
+      ],
+    },
+    async (notification, config) => {
+      if (!config.endpoint) {
+        throw new Error("endpoint is required");
+      }
+      await fetch(config.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: notification.title,
+          message: notification.message,
+          event: notification.event,
+        }),
+      });
+    },
+  );
+}
+```
+
+如果 `handler` 同步抛错或返回的 `Promise` reject，系统会记录通知发送失败的审计日志；回调执行受插件超时时间（默认 30 秒，可通过 `permissions.timeout` 调整）约束。
+
 ## 6. 插件页面
 
 ### 6.1 管理端 iframe 页面
@@ -1276,7 +1332,7 @@ curl -s -X POST "$BASE/api/admin/plugin/configuration" \
 
 ### 8.2 调用
 
-注册后的方法进入 Komari 统一 RPC registry，可通过现有 `/api/rpc2` 调用，也可由其它插件通过 `server.call()` 调用。本文不重复 RPC 请求包络、错误码和鉴权细节，请查阅 [RPC 方法](/dev/api#7-json-rpc-快速开始)。
+注册后的方法进入 Komari 统一 RPC registry，可通过现有 `/api/rpc2` 调用，也可由其它插件通过 `server.call()` 调用。本文不重复 RPC 请求包络、错误码和鉴权细节，请查阅 [RPC 方法](/dev/api#_7-json-rpc-快速开始)。
 
 **HTTP 调用示例：**
 
@@ -1659,6 +1715,7 @@ curl -s -X DELETE "$BASE/api/admin/plugin/market/sources/<source-id>" \
 | `download`    | `string`                          | ZIP 下载 URL；无包时为空       |
 | `sha256`      | `string`                          | ZIP SHA-256；无包时为空        |
 | `komari`      | `string`                          | 服务端版本约束                 |
+| `category`    | `string`                          | 插件分类；未指定时省略         |
 | `installable` | `boolean`                         | 是否具备可安装包且版本约束满足 |
 | `source_id`   | `string`                          | 来源数据源 ID                  |
 | `source_name` | `string`                          | 来源数据源名称                 |
@@ -1721,6 +1778,7 @@ curl -s -X POST "$BASE/api/admin/plugin/market/install" \
 | `server.call()`        | `allowSystemRPC`              |
 | `server.registerRPC()` | 默认可用                      |
 | `server.getConfig()`   | 默认可用                      |
+| `server.registerNotificationChannel()` | 默认可用      |
 | `server.cron()`        | 默认可用                      |
 | 插件代码目录内的 CommonJS 加载 | 默认可用；不要求 `node: true` |
 | 代码目录和 `__storageDir__` 内的 `fs` 读写 | `node: true` |
@@ -1796,4 +1854,5 @@ JSON-RPC 常用错误码：
 | `server.injectHTML()` 注入片段          | 移除                                                   |
 | `server.cron()` 任务                    | 取消并移除                                             |
 | `server.registerRPC()` 方法             | 注销                                                   |
+| `server.registerNotificationChannel()` 渠道 | 注销并调用内部 `Unload` 清理                       |
 | 插件自建 timer、listener、进程等资源    | 运行时会关闭已登记资源；脚本应在 `unload()` 中主动清理 |

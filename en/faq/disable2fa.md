@@ -34,4 +34,4 @@ With a custom database path:
 docker exec komari /app/komari disable-2fa
 ```
 
-Back up the data directory before making account recovery changes.
+The command prints `2FA has been disabled.` and `Please restart the server to apply the changes.` Restart Komari (`docker restart komari` or restart the service) to apply the change, and back up the `data` directory before making account recovery changes.

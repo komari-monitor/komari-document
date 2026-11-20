@@ -61,8 +61,20 @@
     ```
 3.  **确认无任何自定义修改可以使用一行命令一键删除**
     ```bash
-    sudo systemctl stop komari-agent && sudo systemctl disable komari-agent && sudo rm -f /etc/systemd/system/komari-agent.service && sudo systemctl daemon-reload && sudo rm -rf /opt/komari/agent /var/log/komari
+    sudo systemctl stop komari-agent && sudo systemctl disable komari-agent && sudo rm -f /etc/systemd/system/komari-agent.service && sudo systemctl daemon-reload && sudo rm -rf /opt/komari/agent
     ```
+
+### 非 root 用户服务（`systemd --user`）
+
+如果通过非 root 账户安装，可执行以下命令停止并删除用户级服务和默认文件：
+
+```bash
+systemctl --user stop komari-agent
+systemctl --user disable komari-agent
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/komari-agent.service"
+systemctl --user daemon-reload
+rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/komari/agent"
+```
     
 
 ### OpenRC

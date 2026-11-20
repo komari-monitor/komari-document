@@ -1,7 +1,7 @@
 # Sync Node IPs to Git
 
-:::warning Version notice
-This feature will be removed in the next major Komari release, `1.3`. Do not rely on this workflow for new production deployments, and plan a replacement for existing setups.
+:::warning Compatibility notice
+`komari-git-sync` reads the `clients` table directly from the local SQLite database (`komari.db`). For newer Komari deployments, prefer using the official API or RPC endpoints rather than reading internal database tables directly.
 :::
 
 Some deployments sync node IP information to a Git repository for automation or inventory purposes.

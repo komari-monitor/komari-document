@@ -1,5 +1,7 @@
 # Build from Source
 
+Prerequisites: Go `1.25+`, Node.js `22+`, `zstd`, and a C compiler (`gcc` / `build-essential` for `CGO_ENABLED=1` with `go-sqlite3`).
+
 Build the frontend theme first, then build the Komari backend.
 
 ## Build the Frontend

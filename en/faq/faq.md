@@ -8,10 +8,7 @@ Starting with Agent `1.1.40`, Komari calculates memory usage in the same style a
 
 Komari filters disks with simple mount point and filesystem-type rules. Special mount points or filesystem types can cause unexpected results.
 
-Use these agent parameters to tune disk monitoring:
-
-- `--include-mountpoint`
-- `--exclude-mountpoint`
+Use the agent parameter `--include-mountpoint` (semicolon-separated) to specify the mount points to monitor.
 
 ## How do I reset network traffic monthly?
 
@@ -21,4 +18,4 @@ During installation, set the monthly network traffic reset day to match your pro
 
 In the admin dashboard, edit a server from the server list and set the traffic threshold. After saving, the progress bar appears for that node.
 
-Do not exceed the maximum `BIGINT` value: `9,223,372,036,854,775,807` bytes, roughly 9 PB.
+Do not exceed the maximum `BIGINT` value: `9,223,372,036,854,775,807` bytes (roughly `9,223 PB` / `8 EiB`).

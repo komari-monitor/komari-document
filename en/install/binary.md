@@ -19,7 +19,7 @@ On Windows:
 ## Download Komari
 
 1. Open the [GitHub Releases page](https://github.com/komari-monitor/komari/releases).
-2. Download the asset for your operating system and CPU architecture.
+2. Download the matching asset for your OS and CPU architecture (for example `komari-linux-amd64`, `komari-linux-arm64`, or `komari-windows-amd64.exe`).
 3. Rename it to `komari` or `komari.exe`.
 4. Place it in a dedicated directory, such as `~/komari` on Linux or `C:\komari` on Windows.
 

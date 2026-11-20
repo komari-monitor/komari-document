@@ -1115,6 +1115,62 @@ For example, if the configuration contains `message` and `enabled`, the return s
 }
 ```
 
+### 5.9 `server.registerNotificationChannel(id, configuration, handler)`
+
+**Description:** Registers a plugin-implemented notification channel with the server. Administrators can select the channel under Notification Settings and fill out its managed configuration form; the channel is automatically unregistered when the plugin unloads.
+
+**Permission:** Granted by default; no manifest declaration is required.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | Yes | Unique channel ID; must be non-empty and must not collide with built-in or other plugin-registered channel IDs. |
+| `configuration` | `object` | Yes | Managed configuration schema object (same shape as [Managed Configuration](/en/dev/managed-config); defaults to `type: "managed"` when omitted). |
+| `handler` | `(notification, config) => void \| Promise<void>` | Yes | Callback invoked when sending a notification; may return synchronously or return a `Promise`. |
+
+The `handler` receives two arguments:
+
+- `notification`: `{ event, title, message }`, where `event` is the `EventMessage` object (`event`, `clients`, `time`, `message`, `emoji`), `title` is the event name string, and `message` is the text rendered by the system notification template.
+- `config`: The resolved configuration object for this channel (saved values merged with defaults, and selector fields converted to arrays).
+
+**Return value:** `undefined`.
+
+**Example:**
+
+```js
+const server = require("server");
+
+function load() {
+  server.registerNotificationChannel(
+    "custom-webhook",
+    {
+      type: "managed",
+      name: "Custom Notification Channel",
+      data: [
+        { key: "endpoint", name: "Webhook URL", type: "string", required: true },
+      ],
+    },
+    async (notification, config) => {
+      if (!config.endpoint) {
+        throw new Error("endpoint is required");
+      }
+      await fetch(config.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: notification.title,
+          message: notification.message,
+          event: notification.event,
+        }),
+      });
+    },
+  );
+}
+```
+
+If `handler` throws or returns a rejected `Promise`, the server records a failed notification audit log. Execution is bounded by the plugin execution timeout (default 30 seconds, configurable via `permissions.timeout`).
+
 ## 6. Plugin Pages
 
 ### 6.1 Admin iframe Pages
@@ -1662,6 +1718,7 @@ curl -s -X DELETE "$BASE/api/admin/plugin/market/sources/<source-id>" \
 | `download` | `string` | ZIP download URL, or an empty string when no package is available. |
 | `sha256` | `string` | ZIP SHA-256, or an empty string when no package is available. |
 | `komari` | `string` | Server version constraint. |
+| `category` | `string` | Plugin category. Omitted when unset. |
 | `installable` | `boolean` | Whether an installable package exists and the version constraint is satisfied. |
 | `source_id` | `string` | Source ID. |
 | `source_name` | `string` | Source name. |
@@ -1724,6 +1781,7 @@ The server fetches the catalog again, downloads the ZIP, validates its SHA-256, 
 | `server.call()` | `allowSystemRPC` |
 | `server.registerRPC()` | Granted by default |
 | `server.getConfig()` | Granted by default |
+| `server.registerNotificationChannel()` | Granted by default |
 | `server.cron()` | Granted by default |
 | CommonJS loading inside the plugin code directory | Granted by default; does not require `node: true` |
 | `fs` access inside the code directory and `__storageDir__` | `node: true` |
@@ -1799,4 +1857,5 @@ Common JSON-RPC error codes:
 | Fragments registered by `server.injectHTML()` | Removed. |
 | Jobs registered by `server.cron()` | Cancelled and removed. |
 | Methods registered by `server.registerRPC()` | Unregistered. |
+| Channels registered by `server.registerNotificationChannel()` | Unregistered and unloaded. |
 | Plugin-created timers, listeners, and processes | The runtime closes registered resources. The script should release them explicitly in `unload()`. |

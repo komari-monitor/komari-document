@@ -64,7 +64,7 @@ docker exec komari /app/komari chpasswd -p MySecurePass123 -d /app/data/komari.d
 
 ## Verify
 
-After the command succeeds, sign in with username `admin` and the new password. Restart Komari if your deployment requires it:
+The command prints `Changing password for user: <username>` and `Password changed successfully, new password: <password>`, then prompts you to restart the server. Sign in with the username shown in the command output (chosen during initial `/install` setup) and the new password. Restart Komari to apply the change:
 
 ```bash
 docker restart komari

@@ -58,21 +58,24 @@ Authorization: Bearer <api-key>
 
 ### 1.3 使用 Client Token
 
-Agent 接口通过 Client Token 鉴权。支持以下形式：
+Agent 接口通过 Client Token 鉴权。支持以下 Query 形式：
 
 ```text
 ?token=<client-token>
 ?Authorization=<client-token>
-Authorization: Bearer <client-token>
 ```
 
-JSON 请求体也可使用：
+对于未压缩的非 GET JSON 请求体，也可在顶层 JSON 中附带：
 
 ```json
 {
   "token": "<client-token>"
 }
 ```
+
+::: tip 提示
+`Authorization: Bearer <token>` 请求头仅用于管理员 API Key 或 `/api/clients/register` 的 AutoDiscovery Key，不用于 Client Token；若请求体使用 `Content-Encoding: gzip` 压缩或连接 WebSocket，请通过 Query 参数传入 Client Token。
+:::
 
 ## 2. 通用约定
 
@@ -136,7 +139,7 @@ JSON 请求体也可使用：
 }
 ```
 
-登录页所需的 `/api/login`、`/api/me`、`/api/public`、`/api/version`、`/api/oauth` 等接口仍可访问。
+登录页所需的 `/ping`、`/api/login`、`/api/me`、`/api/public`、`/api/version`、`/api/oauth`、`/api/oauth_callback`、`/api/recent` 等白名单路径仍可匿名访问。开启私有站点后，`/api/rpc2` 也会先受私有站点中间件拦截，匿名访客需先登录或持有有效 `temp_key` Cookie 才能访问。
 
 ### 2.4 敏感操作 2FA
 
@@ -147,12 +150,14 @@ JSON 请求体也可使用：
 - `POST /api/admin/2fa/disable`
 - 新建 `GET /api/admin/client/:uuid/terminal` WebSocket 会话时
 
-2FA code 的来源顺序：
+REST 接口的 2FA code 读取顺序：
 
-1. JSON body 的 `2fa_code`、`two_factor_code` 或 `otp`
-2. `X-2FA-Code` 请求头
-3. `X-Two-Factor-Code` 请求头
-4. Query 参数 `2fa_code`、`two_factor_code` 或 `otp`
+1. `X-2FA-Code` 请求头
+2. `X-Two-Factor-Code` 请求头
+3. Query 参数 `2fa_code`、`two_factor_code` 或 `otp`
+4. JSON body 的 `2fa_code`、`two_factor_code` 或 `otp`（`POST /api/admin/update/user` 除外，会直接读取 body 的 `2fa_code`）
+
+通过 `/api/rpc2` 调用敏感 RPC 方法时，则优先读取 `params` 中的 `2fa_code`、`two_factor_code` 或 `otp`，其次再回退到请求头和 Query 参数。
 
 使用 API Key 调用时不需要重复提供 2FA code；未启用 2FA 的管理员也不需要。
 
@@ -334,9 +339,13 @@ OAuth Provider 回调地址。登录成功或绑定成功后重定向到 `/admin
 
 ```bash
 curl -s \
-  -H "Authorization: Bearer $KOMARI_API_KEY" \
+  -b cookies.txt \
   "$BASE/api/me"
 ```
+
+::: info 说明
+`/api/me` 仅识别浏览器登录的 `session_token` Cookie；使用管理员 API Key 调用时会返回 `{"username": "Guest", "logged_in": false}`。
+:::
 
 ### 3.6 节点基础信息
 
@@ -412,7 +421,7 @@ curl -s "$BASE/api/recent/d4c8d9a1-4ec5-4c1b-9b95-4c1c8f930b0d"
 | 参数        | 类型      | 必填 | 默认 | 说明                                                                                              |
 | ----------- | --------- | ---- | ---- | ------------------------------------------------------------------------------------------------- |
 | `uuid`      | `string`  | 是   | -    | Client UUID                                                                                       |
-| `load_type` | `string`  | 否   | 全部 | `cpu`、`ram`、`swap`、`load`、`temp`、`disk`、`network`、`process`、`connections`、`all` 或 `gpu` |
+| `load_type` | `string`  | 否   | 全部 | `cpu`、`ram`、`swap`、`load`、`temp`、`disk`、`network`、`process`、`connections` 或 `all` |
 | `hours`     | `integer` | 否   | `4`  | 回溯小时数                                                                                        |
 
 **响应：**
@@ -429,7 +438,7 @@ curl -s "$BASE/api/recent/d4c8d9a1-4ec5-4c1b-9b95-4c1c8f930b0d"
 }
 ```
 
-未指定 `load_type` 或指定 `all`、`gpu` 时，响应可能包含 `gpu_devices` 和 `has_gpu_data`。
+未指定 `load_type` 或指定 `all` 时，响应可能包含 `gpu_devices` 和 `has_gpu_data`。
 
 ```bash
 curl -s "$BASE/api/records/load?uuid=<uuid>&load_type=cpu&hours=6"
@@ -610,9 +619,9 @@ curl -s "$BASE/api/plugin/status-extension/pages/public.html"
 
 **Query 参数：**
 
-| 参数   | 类型     | 必填 | 说明                     |
-| ------ | -------- | ---- | ------------------------ |
-| `name` | `string` | 否   | 节点名称；省略时自动生成 |
+| 参数   | 类型     | 必填 | 说明                                         |
+| ------ | -------- | ---- | -------------------------------------------- |
+| `name` | `string` | 否   | 节点名称后缀，服务端会自动加上 `Auto-` 前缀；省略时随机生成 |
 
 ```bash
 curl -s -X POST "$BASE/api/clients/register?name=web-01" \
@@ -640,7 +649,7 @@ curl -s -X POST "$BASE/api/clients/register?name=web-01" \
 
 **Content-Type：** `application/json`
 
-请求体为单个 Agent v2 JSON-RPC 请求。支持 `Content-Encoding: gzip`。
+请求体为单个 Agent v2 JSON-RPC 请求。支持 `Content-Encoding: gzip`；若 RPC 执行返回错误，该 HTTP 接口会返回 `400 Bad Request` 与 JSON-RPC 错误对象。
 
 ```bash
 curl -s -X POST "$BASE/api/clients/v2/rpc?token=$CLIENT_TOKEN" \
@@ -668,10 +677,10 @@ Agent v2 方法、参数与事件见 [Agent v2 RPC](#_15-agent-v2-rpc)。
 
 - `agent.exec`
 - `agent.ping`
-- `agent.message`
-- `agent.event`
 - `agent.terminal.request`
-- 文件传输控制事件
+- `agent.file`
+- `agent.startupConfig`
+- `agent.switchVersion`
 
 浏览器或调试工具可使用：
 
@@ -962,37 +971,7 @@ curl -s \
 
 ### 5.4 Provider 配置
 
-#### 5.4.1 消息发送 Provider
-
-**接口：**
-
-- `GET /api/admin/settings/message-sender`
-- `POST /api/admin/settings/message-sender`
-
-读取指定 Provider：
-
-```bash
-curl -s \
-  -H "Authorization: Bearer $KOMARI_API_KEY" \
-  "$BASE/api/admin/settings/message-sender?provider=telegram"
-```
-
-省略 `provider` 时返回可用 Provider 配置模板列表。
-
-保存配置：
-
-```bash
-curl -s \
-  -H "Authorization: Bearer $KOMARI_API_KEY" \
-  -X POST "$BASE/api/admin/settings/message-sender" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "telegram",
-    "addition": "{\"bot_token\":\"...\",\"chat_id\":\"...\"}"
-  }'
-```
-
-#### 5.4.2 OIDC Provider
+#### 5.4.1 OIDC Provider
 
 **接口：**
 
@@ -1013,6 +992,8 @@ curl -s \
     "addition": "{\"client_id\":\"...\",\"client_secret\":\"...\"}"
   }'
 ```
+
+消息发送渠道已迁移至通知渠道接口，见 [5.7.1 通知渠道](#_5-7-1-通知渠道)。
 
 ### 5.5 会话管理
 
@@ -1093,33 +1074,39 @@ curl -s \
 
 终端会话在审计日志中只占一条记录：会话建立时写入，重连、挂起、结束时原地更新时长、重连次数与结束原因，可用 `msg_type=terminal` 单独筛选。
 
-### 5.7 通知规则
+### 5.7 通知渠道与规则
 
-#### 5.7.1 负载通知
+#### 5.7.1 通知渠道
 
-| 方法   | 接口                                  | 说明 |
-| ------ | ------------------------------------- | ---- |
-| `GET`  | `/api/admin/notification/load/`       | 列表 |
-| `POST` | `/api/admin/notification/load/add`    | 新建 |
-| `POST` | `/api/admin/notification/load/edit`   | 编辑 |
-| `POST` | `/api/admin/notification/load/delete` | 删除 |
+系统内置 `webhook` 与 `Javascript` 渠道，也支持插件通过 `server.registerNotificationChannel` 动态注册渠道。
+
+| 方法   | 接口                                          | 说明             |
+| ------ | --------------------------------------------- | ---------------- |
+| `GET`  | `/api/admin/notification/channels`            | 已注册渠道列表   |
+| `GET`  | `/api/admin/notification/channel/configuration?id=` | 读取渠道配置与值 |
+| `POST` | `/api/admin/notification/channel/configuration`     | 保存渠道配置     |
 
 ```bash
 curl -s \
   -H "Authorization: Bearer $KOMARI_API_KEY" \
-  -X POST "$BASE/api/admin/notification/load/add" \
+  "$BASE/api/admin/notification/channels"
+
+curl -s \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
+  "$BASE/api/admin/notification/channel/configuration?id=webhook"
+
+curl -s \
+  -H "Authorization: Bearer $KOMARI_API_KEY" \
+  -X POST "$BASE/api/admin/notification/channel/configuration" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "CPU high",
-    "clients": ["<uuid>"],
-    "metric": "cpu",
-    "threshold": 90,
-    "ratio": 0.8,
-    "interval": 15
+    "id": "webhook",
+    "data": {
+      "url": "https://example.com/hook",
+      "method": "POST"
+    }
   }'
 ```
-
-`interval` 单位为分钟，范围 `1..240`；`ratio` 范围 `(0,1]`。
 
 #### 5.7.2 离线通知
 
@@ -1240,6 +1227,7 @@ curl -s \
 | `POST` | `/api/admin/plugin/delete`               | 删除插件           |
 | `GET`  | `/api/admin/plugin/configuration?short=` | 配置声明与已保存值 |
 | `POST` | `/api/admin/plugin/configuration`        | 保存配置           |
+| `GET`  | `/api/admin/plugin/:short/*filepath`     | 插件管理页面静态文件 |
 
 ```bash
 curl -s \
@@ -2247,7 +2235,7 @@ body.params.token
 
 ### 9.3 私有站点限制
 
-启用私有站点后，匿名访客仅能调用：
+在 RPC2 Dispatcher 内部，私有站点白名单允许匿名调用：
 
 ```text
 public:getMe
@@ -2255,7 +2243,7 @@ public:getPublicSettings
 public:getVersion
 ```
 
-持有有效 `temp_key` 的匿名访客可继续调用 `public:*` 方法。
+持有有效 `temp_key` 的匿名访客可继续调用 `public:*` 方法。但通过 HTTP/WS 访问 `/api/rpc2` 时，请求会先经过全局 `PrivateSiteMiddleware`，因此匿名访客仍需携带有效 `temp_key` Cookie 或先完成登录。
 
 ### 9.4 敏感操作
 
@@ -3020,31 +3008,29 @@ Admin 方法仅管理员可调用。下列示例均可通过 `/api/rpc2`、sessi
 
 ### 14.5 通知
 
-| 方法                               | 参数                                                     | 返回                    |
-| ---------------------------------- | -------------------------------------------------------- | ----------------------- |
-| `admin:addLoadNotification`        | `{ clients, metric, threshold, ratio, interval, name? }` | `{ task_id }`           |
-| `admin:deleteLoadNotification`     | `{ id: number[] }`                                       | `null`                  |
-| `admin:editLoadNotification`       | `{ notifications: LoadNotification[] }`                  | `null`                  |
-| `admin:getAllLoadNotifications`    | -                                                        | `LoadNotification[]`    |
-| `admin:listOfflineNotifications`   | -                                                        | `OfflineNotification[]` |
-| `admin:editOfflineNotification`    | `OfflineNotification[]`                                  | `null`                  |
-| `admin:enableOfflineNotification`  | `string[]`                                               | `null`                  |
-| `admin:disableOfflineNotification` | `string[]`                                               | `null`                  |
-| `admin:sendNotification`           | `{ event: EventMessage }`                                | `null`                  |
+| 方法                                       | 参数                      | 返回                            |
+| ------------------------------------------ | ------------------------- | ------------------------------- |
+| `admin:listNotificationChannels`           | -                         | `NotificationChannelInfo[]`     |
+| `admin:getNotificationChannelConfiguration`| `{ id }`                  | `{ configuration, data }`       |
+| `admin:setNotificationChannelConfiguration`| `{ id, data }`            | `null`                          |
+| `admin:listOfflineNotifications`           | -                         | `OfflineNotification[]`         |
+| `admin:editOfflineNotification`            | `OfflineNotification[]`   | `null`                          |
+| `admin:enableOfflineNotification`          | `string[]`                | `null`                          |
+| `admin:disableOfflineNotification`         | `string[]`                | `null`                          |
+| `admin:sendNotification`                   | `{ event: EventMessage }` | `null`                          |
 
-新增负载通知：
+保存通知渠道配置：
 
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "admin:addLoadNotification",
+  "method": "admin:setNotificationChannelConfiguration",
   "params": {
-    "name": "CPU high",
-    "clients": ["d4c8d9a1-4ec5-4c1b-9b95-4c1c8f930b0d"],
-    "metric": "cpu",
-    "threshold": 90,
-    "ratio": 0.8,
-    "interval": 15
+    "id": "webhook",
+    "data": {
+      "url": "https://example.com/hook",
+      "method": "POST"
+    }
   },
   "id": 1
 }
@@ -3071,20 +3057,18 @@ Admin 方法仅管理员可调用。下列示例均可通过 `/api/rpc2`、sessi
 
 ### 14.6 Provider
 
-| 方法                             | 参数                 | 返回                    |
-| -------------------------------- | -------------------- | ----------------------- |
-| `admin:getMessageSenderProvider` | `{ provider? }`      | Provider 配置或模板列表 |
-| `admin:setMessageSenderProvider` | `{ name, addition }` | `{ message }`           |
-| `admin:getOidcProvider`          | `{ provider? }`      | Provider 配置或模板列表 |
-| `admin:setOidcProvider`          | `{ name, addition }` | `{ message }`           |
+| 方法                    | 参数                 | 返回                    |
+| ----------------------- | -------------------- | ----------------------- |
+| `admin:getOidcProvider` | `{ provider? }`      | Provider 配置或模板列表 |
+| `admin:setOidcProvider` | `{ name, addition }` | `{ message }`           |
 
 ```json
 {
   "jsonrpc": "2.0",
-  "method": "admin:setMessageSenderProvider",
+  "method": "admin:setOidcProvider",
   "params": {
-    "name": "telegram",
-    "addition": "{\"bot_token\":\"...\",\"chat_id\":\"...\"}"
+    "name": "github",
+    "addition": "{\"client_id\":\"...\",\"client_secret\":\"...\"}"
   },
   "id": 1
 }
@@ -3133,11 +3117,12 @@ Admin 方法仅管理员可调用。下列示例均可通过 `/api/rpc2`、sessi
 
 ### 14.8 系统与诊断
 
-| 方法                    | 参数                                        | 返回              |
-| ----------------------- | ------------------------------------------- | ----------------- |
-| `admin:getLogs`         | `{ limit?, page?, msg_type?, q? }`          | `{ logs, total }` |
-| `admin:testSendMessage` | -                                           | `null`            |
-| `admin:testGeoip`       | `{ ip? }`                                   | GeoIP 记录        |
+| 方法                    | 参数                                        | 返回                       |
+| ----------------------- | ------------------------------------------- | -------------------------- |
+| `admin:getLogs`         | `{ limit?, page?, msg_type?, q? }`          | `{ logs, total }`          |
+| `admin:testSendMessage` | -                                           | `null`                     |
+| `admin:testGeoip`       | `{ ip? }`                                   | GeoIP 记录                 |
+| `admin:getLastRunVersion`| -                                          | `{ last_run_version }`     |
 
 `q` 参数需要 Komari `1.6.2` 及以上版本；更早版本只接受 `limit`、`page` 和 `msg_type`。
 
