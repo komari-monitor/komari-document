@@ -12,6 +12,8 @@ chmod +x install-komari.sh
 sudo ./install-komari.sh
 ```
 
+在终端中按照提示操作即可。脚本会完成 Komari 的安装，并将其设置为系统服务。
+
 ## 方式2：使用 Docker
 
 ```bash
